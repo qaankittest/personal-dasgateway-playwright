@@ -49,6 +49,7 @@ export const TEST_CONFIG = {
     subscription: (dasmid: string) => route(`/products/subscription/${dasmid}`),
     statements: route('/finance/statements'),
     statementDetail: (statementId: string) => route(`/finance/statements/${statementId}`),
+    hashCard: route('/hashcard'),
   },
   // GUEST sign-up: the dev backend accepts a fixed verification OTP, and each
   // run registers a fresh GUEST under a unique email so it never collides.
