@@ -1,7 +1,7 @@
 # CLAUDE.md — DasGateway E2E (`das-gateway-e2e`)
 
 Guidance for Claude (and humans) when working in this repo. The project is a
-**Playwright + TypeScript end-to-end suite** for the **Payment Options / DasGateway
+**Playwright + JavaScript end-to-end suite** for the **Payment Options / DasGateway
 internal admin portal**. It contains *only* the test suite — not the app under test.
 
 > **North star:** new tests are authored by **debugging the live app in the
@@ -13,7 +13,12 @@ internal admin portal**. It contains *only* the test suite — not the app under
 
 ## 1. Stack & layout
 
-- **Runner:** `@playwright/test` ^1.59, TypeScript ~6, ESM (`"type": "module"`).
+- **Runner:** `@playwright/test` ^1.59, plain JavaScript, ESM (`"type": "module"`).
+  No build step and no type-checking step — Node runs the sources directly.
+- **Types:** documented with **JSDoc**, not TypeScript. Domain shapes live as
+  `@typedef` blocks in `fixtures/*/types.js`; POMs annotate params with
+  `@param {import('@playwright/test').Page} page`. Editors still complete and
+  check against these; `jsconfig.json` wires it up (`checkJs` is off).
 - **Architecture:** Page Object Model (POM). Specs stay thin; all locators and
   flows live in `pages/`.
 - **Target app:** `https://dev.paymentoptions.com/beta` (dev). `BASE_URL` is the
@@ -21,20 +26,20 @@ internal admin portal**. It contains *only* the test suite — not the app under
 
 ```
 playwright/
-├── playwright.config.ts     # testDir, reporters, baseURL, viewport 1680×900
+├── playwright.config.js     # testDir, reporters, baseURL, viewport 1680×900
 ├── .env.example             # copy → .env, fill creds
 ├── fixtures/
-│   ├── test-config.ts       # BASE_URL, route(), TEST_CONFIG, ACTION_LABELS
-│   ├── onboarding/          # JSON fixtures + load.ts + types.ts
-│   └── products/            # JSON fixtures + load.ts + types.ts
+│   ├── test-config.js       # BASE_URL, route(), TEST_CONFIG, ACTION_LABELS
+│   ├── onboarding/          # JSON fixtures + load.js + types.js
+│   └── products/            # JSON fixtures + load.js + types.js
 ├── pages/                   # POMs, split by domain
 │   ├── auth/  merchants/  transactions/  onboarding/  finance/  products/
 ├── utils/
-│   ├── scroll.ts            # scrollUntilRowCount (infinite scroll + idle detect)
-│   ├── retry.ts             # backoff retry helper
-│   ├── logger.ts            # log.info/warn/fail — "[E2E] …" prefix
-│   ├── validators.ts        # cross-surface transaction-action assertions
-│   └── dasForm.ts           # drive components/das-form controls
+│   ├── scroll.js            # scrollUntilRowCount (infinite scroll + idle detect)
+│   ├── retry.js             # backoff retry helper
+│   ├── logger.js            # log.info/warn/fail — "[E2E] …" prefix
+│   ├── validators.js        # cross-surface transaction-action assertions
+│   └── dasForm.js           # drive components/das-form controls
 ├── tests/                   # specs, mirroring pages/ domains
 └── reports/                 # html + junit.xml + artifacts (traces/screens/video)
 ```
@@ -51,7 +56,7 @@ TRANSACTION_COUNT=100 npm run test:no-ui
 BASE_URL=https://staging.example.com npm run test:no-ui
 ```
 
-Run a single spec: `npx playwright test playwright/tests/<domain>/<file>.spec.ts --config=playwright/playwright.config.ts`.
+Run a single spec: `npx playwright test playwright/tests/<domain>/<file>.spec.js --config=playwright/playwright.config.js`.
 
 Config notes: `fullyParallel: false`, `retries` 1 local / 2 CI, `timeout` 90s,
 `expect` 10s, viewport widened to **1680×900** so right-anchored drawers
@@ -75,7 +80,7 @@ optional `BASE_URL`, `TEST_OTP` (1234), `TEST_GUEST_EMAIL_DOMAIN`,
    params each action pushes, and the network endpoints (method + path) each
    mutation calls.
 2. **Prefer a throwaway discovery spec** for anything table/filter-driven.
-   `tests/transactions/_discover-columns.spec.ts` is the template: derive live
+   `tests/transactions/_discover-columns.spec.js` is the template: derive live
    values from the DOM, apply the control, and `console.log` the URL params +
    resulting rows. Prefix with `_`, note "delete after use", and remove it once
    the real spec is written.
@@ -133,7 +138,7 @@ are **not** native form controls. Rules that keep locators stable:
   handler**; close it by re-clicking the trigger or an outside safe element.
 - DateField uses react-datepicker (calendar portal `#das-datepicker-portal`);
   **manual typing is blocked** (`onChangeRaw` prevent-default) — pick via the
-  calendar. Use the `utils/dasForm.ts` helpers (`selectDasFormOption`,
+  calendar. Use the `utils/dasForm.js` helpers (`selectDasFormOption`,
   `pickDasFormDate`) rather than re-implementing.
 - The Advanced-Filters popover renders inline (not portaled); anchor rule rows
   by their `grid-cols-[1fr_1fr_40px]` container / the "Remove filter" button.
@@ -149,18 +154,19 @@ are **not** native form controls. Rules that keep locators stable:
 - **Empty data & missing permissions self-annotate** rather than hard-fail:
   assert the empty state and push a `test.info().annotations` note, then return.
 - Mark heavy suites `test.slow()`.
-- **Mutating vs read-only:** `statements-actions.spec.ts` (Approve / Wired
+- **Mutating vs read-only:** `statements-actions.spec.js` (Approve / Wired
   Status / edit STATUS) **changes backend state** — run only against a disposable
   dev environment, and needs FINANCE/SETTLEMENT/SUPPORT/SYSADMIN permissions
   (self-skips otherwise). Filter/smoke suites are read-only.
-- Logging via `utils/logger.ts` (`log.info/warn/fail`), always include the row's
+- Logging via `utils/logger.js` (`log.info/warn/fail`), always include the row's
   ref/id in the meta so a failure says *which* record on *which* surface broke.
 
 ## 8. Fixtures
 
-- JSON fixtures live under `fixtures/<domain>/` with a `load.ts` (uses
-  `readFileSync` + `JSON.parse`, **not** a JSON import — tsconfig has no
-  `resolveJsonModule`) and a `types.ts`.
+- JSON fixtures live under `fixtures/<domain>/` with a `load.js` (uses
+  `readFileSync` + `JSON.parse`, **not** a JSON import — a runtime read keeps the
+  fixture editable and sidesteps ESM import-attributes ceremony) and a `types.js`
+  holding the JSDoc `@typedef`s for that domain's shapes.
 - GUEST onboarding: emails template `{{unique}}` → a per-run base-36 timestamp so
   reruns never hit "email already registered"; secrets fall back to `TEST_CONFIG`.
 
@@ -176,9 +182,15 @@ are **not** native form controls. Rules that keep locators stable:
 ## 10. Gotchas
 
 - ESM project (`"type": "module"`) — use ESM imports; `import.meta.url` for paths.
-- No `resolveJsonModule` → read fixtures with `readFileSync`, not `import x from '*.json'`.
+- **Relative imports MUST carry the `.js` extension** (`'../../utils/logger.js'`).
+  Node's ESM resolver does no extension guessing, so an extensionless import
+  throws `ERR_MODULE_NOT_FOUND` at load time.
+- Read fixtures with `readFileSync` + `JSON.parse`, not `import x from '*.json'`.
+- Class internals use real `#private` methods/getters (e.g. `#button()`,
+  `#filterPortal`) — call them as `this.#name`, and note they're invisible
+  outside the class body.
 - Transaction `capture` and `void` are **mutually exclusive** — both visible = a
-  selector bug (asserted in `utils/validators.ts`).
+  selector bug (asserted in `utils/validators.js`).
 - Drawer/details action visibility must **agree across surfaces**
   (`assertSurfacesAgree`) — both consume the same `selectTransactionActions`.
 - Reset filters by **reload** (`resetFiltersViaReload`) — the filter slice isn't
@@ -194,7 +206,7 @@ Ongoing conventions and things to build. Add freely.
 
 - Author tests **browser-debug-first**: verify selectors/params/endpoints against
   the live app before writing the POM.
-- Use temporary `_discover-*.spec.ts` probes to map filterable columns → URL
+- Use temporary `_discover-*.spec.js` probes to map filterable columns → URL
   params, then delete them.
 - Prefer testid-first locators; lobby the app team to add the testids in §9.
 - _(add your own patterns / ideas here)_

@@ -6,45 +6,45 @@ All Playwright artefacts (config, POMs, utils, specs, reports) live in this fold
 
 ```
 playwright/
-├── playwright.config.ts          # config (testDir, reporters, baseURL, webServer)
+├── playwright.config.js          # config (testDir, reporters, baseURL, webServer)
 ├── .env.example                  # copy to .env, fill in creds
 ├── .gitignore                    # ignores .env + reports
 ├── README.md
 │
 ├── fixtures/
-│   ├── test-config.ts            # creds, routes, scroll tuning, action labels
+│   ├── test-config.js            # creds, routes, scroll tuning, action labels
 │   └── sample-document.pdf       # upload fixture for the onboarding suite
 │
 ├── pages/
 │   ├── auth/
-│   │   └── LoginPage.ts
+│   │   └── LoginPage.js
 │   ├── merchants/                # merchant list / details / drawer POMs
 │   ├── transactions/
-│   │   ├── TransactionsPage.ts          # table + infinite scroll + row navigation
-│   │   ├── TransactionDetailsPage.ts    # /transactions/:id action buttons
-│   │   └── TransactionDrawerPage.ts     # global drawer action buttons
+│   │   ├── TransactionsPage.js          # table + infinite scroll + row navigation
+│   │   ├── TransactionDetailsPage.js    # /transactions/:id action buttons
+│   │   └── TransactionDrawerPage.js     # global drawer action buttons
 │   ├── onboarding/
-│   │   ├── GuestSignUpPage.ts           # choose-type → account → OTP → password
-│   │   └── MerchantRegistrationPage.ts  # /onboarding wizard tabs
+│   │   ├── GuestSignUpPage.js           # choose-type → account → OTP → password
+│   │   └── MerchantRegistrationPage.js  # /onboarding wizard tabs
 │   └── finance/
-│       ├── StatementsPage.ts            # statements list, bulk chips, filter popover
-│       └── StatementEditDrawer.ts       # row → details → EDIT → STATUS → Submit
+│       ├── StatementsPage.js            # statements list, bulk chips, filter popover
+│       └── StatementEditDrawer.js       # row → details → EDIT → STATUS → Submit
 │
 ├── utils/
-│   ├── scroll.ts                 # scroll-until-N-rows w/ idle detection
-│   ├── retry.ts                  # backoff retry helper
-│   ├── logger.ts                 # structured console logging
-│   └── validators.ts             # per-row + cross-surface assertions
+│   ├── scroll.js                 # scroll-until-N-rows w/ idle detection
+│   ├── retry.js                  # backoff retry helper
+│   ├── logger.js                 # structured console logging
+│   └── validators.js             # per-row + cross-surface assertions
 │
 ├── tests/
-│   ├── auth/login.spec.ts
-│   ├── merchants/merchants-e2e.spec.ts
+│   ├── auth/login.spec.js
+│   ├── merchants/merchants-e2e.spec.js
 │   ├── transactions/
 │   ├── finance/
-│   │   ├── statements-filters.spec.ts   # each filter type vs. table output
-│   │   └── statements-actions.spec.ts   # Approve / Wired Status / Edit Status
+│   │   ├── statements-filters.spec.js   # each filter type vs. table output
+│   │   └── statements-actions.spec.js   # Approve / Wired Status / Edit Status
 │   └── onboarding/
-│       └── guest-application.spec.ts    # GUEST sign-up → fill every tab → stop at Submit
+│       └── guest-application.spec.js    # GUEST sign-up → fill every tab → stop at Submit
 │
 └── reports/                      # generated; html, junit, traces, screenshots, videos
     ├── html/
@@ -64,8 +64,8 @@ Add to `package.json` scripts:
 ```json
 {
   "scripts": {
-    "test:e2e": "playwright test --config=playwright/playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=playwright/playwright.config.ts --ui",
+    "test:e2e": "playwright test --config=playwright/playwright.config.js",
+    "test:e2e:ui": "playwright test --config=playwright/playwright.config.js --ui",
     "test:e2e:report": "playwright show-report playwright/reports/html"
   }
 }
@@ -82,12 +82,12 @@ TEST_PASSWORD=...
 TRANSACTION_COUNT=20
 STATEMENT_COUNT=20                  # rows to load for the statements suites
 
-# GUEST onboarding suite (tests/onboarding/guest-application.spec.ts)
+# GUEST onboarding suite (tests/onboarding/guest-application.spec.js)
 TEST_OTP=1234                       # fixed verification OTP the dev backend accepts
 TEST_GUEST_EMAIL_DOMAIN=example.com # domain for the unique per-run sign-up email
 ```
 
-`fixtures/test-config.ts` calls `dotenv.config()` so this file is loaded automatically.
+`fixtures/test-config.js` calls `dotenv.config()` so this file is loaded automatically.
 The onboarding suite reuses `TEST_PASSWORD` as the new GUEST account's password and
 is skipped when it isn't set; each run signs up a fresh GUEST under a unique email.
 
@@ -144,14 +144,14 @@ suite additionally needs approve / edit permission (FINANCE / SETTLEMENT /
 SUPPORT / SYSADMIN) — steps self-skip with an annotation when the chip is
 hidden or no eligible row exists.
 
-- **`statements-filters.spec.ts`** — applies each filter **type** and asserts
+- **`statements-filters.spec.js`** — applies each filter **type** and asserts
   the visible rows agree with it: `text` (Statement ID contains), `multiSelect`
   (DASMID exact, Statement Status), `select` (Recon Status, when present), and
   `dateRange` (Statement Date — functional smoke; exact in-range matching is
   covered by the `serializeForStatements` unit tests). Values are read from the
   live table so each case is self-seeding. Filters reset between cases by a full
   reload (the filter slice isn't persisted; auth is).
-- **`statements-actions.spec.ts`** — **mutates** statement state: selects one
+- **`statements-actions.spec.js`** — **mutates** statement state: selects one
   eligible row and clicks **APPROVE** (`approve-multiple`) / **WIRED STATUS**
   (`update-wired-status`), then opens a row's edit drawer and changes **STATUS**
   to a valid transition (`approve` endpoint). Each action asserts its POST
