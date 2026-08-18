@@ -1,0 +1,137 @@
+name: Playwright E2E
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Target environment (overrides BASE_URL, e.g. https://dev.paymentoptions.com/beta)'
+        required: false
+        type: string
+      test_path:
+        description: 'Spec path / filter, relative to the repo root (blank = whole suite)'
+        required: false
+        type: string
+      grep:
+        description: 'Only run tests whose title matches this regex'
+        required: false
+        type: string
+
+# The suite drives a single shared dev environment (fullyParallel: false,
+# workers: 1 in CI) and some specs mutate backend state — never let two runs
+# on the same ref overlap.
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e (chromium)
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # No `cache: npm` — package-lock.json is git-ignored in this repo,
+          # so there is no lockfile for setup-node (or `npm ci`) to key off.
+
+      - name: Install dependencies
+        # `npm install`, not `npm ci`: the lockfile is not committed.
+        # The `postinstall` hook already runs `playwright install chromium`.
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browser + OS deps
+        # Only the `chromium` project is defined in playwright.config.js.
+        run: npx playwright install --with-deps chromium
+
+      - name: Write playwright/.env
+        # fixtures/test-config.js loads playwright/.env through dotenv, so CI is
+        # configured exactly the way a local run is — same file, same keys as
+        # .env.example. Values arrive as step env vars instead of being inlined
+        # into the script with ${{ }}, so no secret is rendered into the command
+        # GitHub echoes to the log.
+        env:
+          # Credentials — add under Settings → Secrets and variables → Actions.
+          # Specs self-skip (they don't fail) when the pair they need is unset.
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_PARTNER_USERNAME: ${{ secrets.TEST_PARTNER_USERNAME }}
+          TEST_PARTNER_PASSWORD: ${{ secrets.TEST_PARTNER_PASSWORD }}
+          # Environment + tunables. Repository *variables* (vars.*) keep these
+          # editable without touching this file; fallbacks match test-config.js.
+          BASE_URL: ${{ inputs.base_url || vars.BASE_URL || 'https://dev.paymentoptions.com/beta' }}
+          TEST_OTP: ${{ vars.TEST_OTP || '1234' }}
+          TEST_GUEST_EMAIL_DOMAIN: ${{ vars.TEST_GUEST_EMAIL_DOMAIN || 'example.com' }}
+          TRANSACTION_COUNT: ${{ vars.TRANSACTION_COUNT || '20' }}
+          MERCHANT_COUNT: ${{ vars.MERCHANT_COUNT || '10' }}
+          STATEMENT_COUNT: ${{ vars.STATEMENT_COUNT || '20' }}
+        run: |
+          umask 077
+          cat > "$RUNNER_TEMP/write-env.cjs" <<'JS'
+          const { writeFileSync } = require('node:fs');
+
+          // Same key set as playwright/.env.example.
+          const KEYS = [
+            'TEST_USERNAME', 'TEST_PASSWORD',
+            'TEST_PARTNER_USERNAME', 'TEST_PARTNER_PASSWORD',
+            'BASE_URL', 'TEST_OTP', 'TEST_GUEST_EMAIL_DOMAIN',
+            'TRANSACTION_COUNT', 'MERCHANT_COUNT', 'STATEMENT_COUNT',
+          ];
+
+          // Values are written double-quoted, which keeps spaces and `#` intact.
+          // dotenv strips the surrounding quotes but does not unescape anything
+          // inside them, so a value containing a quote, a backslash or a newline
+          // cannot round-trip — fail loudly rather than log in with a mangled
+          // password and leave a confusing auth failure behind.
+          const unrepresentable = KEYS.filter((k) => /["\\\r\n]/.test(process.env[k] ?? ''));
+          if (unrepresentable.length) {
+            console.error(`::error::secret value cannot be represented in .env (quote, backslash or newline): ${unrepresentable.join(', ')}`);
+            process.exit(1);
+          }
+
+          // Skip blanks so an unset secret stays unset and test-config.js applies
+          // its own default instead of seeing an empty string.
+          const lines = KEYS
+            .filter((k) => (process.env[k] ?? '') !== '')
+            .map((k) => `${k}="${process.env[k]}"`);
+
+          writeFileSync('playwright/.env', `${lines.join('\n')}\n`);
+          // Keys only — never the values.
+          console.log('playwright/.env keys:', lines.map((l) => l.split('=')[0]).join(' '));
+          JS
+          node "$RUNNER_TEMP/write-env.cjs"
+
+      - name: Run Playwright tests
+        run: npx playwright test --config=playwright/playwright.config.js ${{ inputs.test_path }} ${{ inputs.grep && format('--grep="{0}"', inputs.grep) || '' }}
+
+      - name: Remove playwright/.env
+        if: ${{ always() }}
+        run: rm -f playwright/.env "$RUNNER_TEMP/write-env.cjs"
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+          # Reporters write to playwright/reports/{html,junit.xml} (see playwright.config.js).
+          path: |
+            playwright/reports/html
+            playwright/reports/junit.xml
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload failure artifacts (traces / screenshots / video)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: playwright/reports/artifacts
+          retention-days: 7
+          if-no-files-found: ignore
