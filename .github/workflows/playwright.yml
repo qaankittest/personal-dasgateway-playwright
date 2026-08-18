@@ -1,0 +1,92 @@
+name: Playwright E2E
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Target environment (overrides BASE_URL, e.g. https://dev.paymentoptions.com/beta)'
+        required: false
+        type: string
+      test_path:
+        description: 'Spec path / filter, relative to the repo root (blank = whole suite)'
+        required: false
+        type: string
+      grep:
+        description: 'Only run tests whose title matches this regex'
+        required: false
+        type: string
+
+# The suite drives a single shared dev environment (fullyParallel: false,
+# workers: 1 in CI) and some specs mutate backend state — never let two runs
+# on the same ref overlap.
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e (chromium)
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+
+    env:
+      # Credentials — add these under Settings → Secrets and variables → Actions.
+      # Specs self-skip (they don't fail) when the pair they need is unset.
+      TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      TEST_PARTNER_USERNAME: ${{ secrets.TEST_PARTNER_USERNAME }}
+      TEST_PARTNER_PASSWORD: ${{ secrets.TEST_PARTNER_PASSWORD }}
+      # Environment + tunables. Repository *variables* (vars.*) keep these
+      # editable without touching this file; the fallbacks match fixtures/test-config.js.
+      BASE_URL: ${{ inputs.base_url || vars.BASE_URL || 'https://dev.paymentoptions.com/beta' }}
+      TEST_OTP: ${{ vars.TEST_OTP || '1234' }}
+      TEST_GUEST_EMAIL_DOMAIN: ${{ vars.TEST_GUEST_EMAIL_DOMAIN || 'example.com' }}
+      TRANSACTION_COUNT: ${{ vars.TRANSACTION_COUNT || '20' }}
+      MERCHANT_COUNT: ${{ vars.MERCHANT_COUNT || '10' }}
+      STATEMENT_COUNT: ${{ vars.STATEMENT_COUNT || '20' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # No `cache: npm` — package-lock.json is git-ignored in this repo,
+          # so there is no lockfile for setup-node (or `npm ci`) to key off.
+
+      - name: Install dependencies
+        # `npm install`, not `npm ci`: the lockfile is not committed.
+        # The `postinstall` hook already runs `playwright install chromium`.
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browser + OS deps
+        # Only the `chromium` project is defined in playwright.config.js.
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test --config=playwright/playwright.config.js ${{ inputs.test_path }} ${{ inputs.grep && format('--grep="{0}"', inputs.grep) || '' }}
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+          # Reporters write to playwright/reports/{html,junit.xml} (see playwright.config.js).
+          path: |
+            playwright/reports/html
+            playwright/reports/junit.xml
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload failure artifacts (traces / screenshots / video)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: playwright/reports/artifacts
+          retention-days: 7
+          if-no-files-found: ignore
