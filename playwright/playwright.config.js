@@ -8,7 +8,12 @@ export default defineConfig({
   testDir: path.join(ROOT, 'tests'),
   timeout: 90_000,
   expect: { timeout: 10_000 },
+  // Deliberately NOT fullyParallel: statements-actions.spec.js mutates backend
+  // state (Approve / Wired Status), so the suite is serialised rather than
+  // racing two workers against the same dev records. See CLAUDE.md §7.
   fullyParallel: false,
+  // A stray `test.only` must never silently shrink a CI run to one test.
+  forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: [

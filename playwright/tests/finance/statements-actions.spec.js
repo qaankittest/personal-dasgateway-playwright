@@ -11,10 +11,7 @@
 // automate the real actions). They are skipped unless creds are set, and each
 // step self-skips (with an annotation) when the signed-in user lacks the
 // permission or no eligible row exists, rather than failing.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { StatementsPage } from '../../pages/finance/StatementsPage.js';
-import { StatementEditDrawer } from '../../pages/finance/StatementEditDrawer.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
@@ -25,14 +22,11 @@ function note(description) {
   test.info().annotations.push({ type: 'note', description });
 }
 
-test.describe('Statements — approve / wired-status / edit actions', () => {
+test.describe('Statements — approve / wired-status / edit actions', { tag: ['@regression', '@mutating'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('drives Approve, Wired Status and Edit Status end-to-end', async ({ page }) => {
+  test('drives Approve, Wired Status and Edit Status end-to-end', async ({ page, loginPage, statementsPage: statements, statementEditDrawer: editDrawer }) => {
     test.slow();
-    const loginPage = new LoginPage(page);
-    const statements = new StatementsPage(page);
-    const editDrawer = new StatementEditDrawer(page);
 
     await test.step('login + open statements', async () => {
       await loginPage.goto();

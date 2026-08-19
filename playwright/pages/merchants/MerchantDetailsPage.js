@@ -157,14 +157,60 @@ export class MerchantDetailsPage {
 
   // ---- merchant-information surface ----------------------------------
 
-  /** @returns {Promise<void>} */
-  async assertMerchantInformationVisible() {
-    // The pills + at least one section heading are the page-level signal
-    // that the tab actually mounted (vs. a stuck spinner).
-    await expect(this.page.getByRole('button', { name: INFO_PILL_LABELS.all })).toBeVisible();
-    await expect(
-      this.page.getByRole('heading', { name: /business\s*details/i }).first()
-    ).toBeVisible();
+  // Verification surfaces are exposed as locators, never as `assert*` methods:
+  // the page object knows *how* to find them, the spec states *what* must be
+  // true. Returning a locator also keeps Playwright's auto-retry alive at the
+  // assertion, which a method returning a boolean would throw away.
+
+  /** The pill buttons that switch the merchant-information layout.
+   *
+   * @param {InfoFilterPill} pill
+   * @returns {import('@playwright/test').Locator}
+   */
+  infoPill(pill) {
+    return this.page.getByRole('button', { name: INFO_PILL_LABELS[pill] });
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  get businessDetailsHeading() {
+    return this.page.getByRole('heading', { name: /business\s*details/i }).first();
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  get contactDetailsHeading() {
+    return this.page.getByRole('heading', { name: /contact\s*details/i }).first();
+  }
+
+  /** Present while a tab's content panel is still loading. */
+  get loadingSpinner() {
+    return this.page.locator('svg.animate-spin').first();
+  }
+
+  /** User Management's signature CTA — only mounts on that tab. */
+  get addNewUserButton() {
+    return this.page.getByRole('button', { name: /add\s*new\s*user/i });
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  get ipWhitelistHeading() {
+    return this.page.getByRole('heading', { name: /ip\s*whitelisting\s*configuration/i }).first();
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  get addIpAddressButton() {
+    return this.page.getByRole('button', { name: /add\s*ip\s*address/i });
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  get webhookConfigHeading() {
+    return this.page.getByRole('heading', { name: /webhook\s*url\s*configuration/i }).first();
+  }
+
+  /** @param {MerchantCatalogueId} item
+   *  @returns {import('@playwright/test').Locator} */
+  catalogueHeading(item) {
+    const name = item === 'categories' ? /categories/i : /products/i;
+    return this.page.getByRole('heading', { name }).first();
   }
 
   /**
@@ -172,85 +218,10 @@ export class MerchantDetailsPage {
    * @returns {Promise<void>}
    */
   async selectInfoPill(pill) {
-    const btn = this.page.getByRole('button', { name: INFO_PILL_LABELS[pill] }).first();
-    await btn.click();
-    await this.assertInfoPillSections(pill);
-  }
-
-  /**
-   * Each pill controls which section(s) render (split / single layout).
-   * The page swaps DOM rather than just toggling visibility, so we assert
-   * the section headings directly.
-   *
-   * @param {InfoFilterPill} pill
-   * @returns {Promise<void>}
-   */
-  async assertInfoPillSections(pill) {
-    const business = this.page.getByRole('heading', { name: /business\s*details/i }).first();
-    const contact = this.page.getByRole('heading', { name: /contact\s*details/i }).first();
-    if (pill === 'all') {
-      await expect(business).toBeVisible();
-      await expect(contact).toBeVisible();
-      return;
-    }
-    if (pill === 'business-details') {
-      await expect(business).toBeVisible();
-      await expect(contact).toHaveCount(0);
-      return;
-    }
-    await expect(contact).toBeVisible();
-    await expect(business).toHaveCount(0);
+    await this.infoPill(pill).first().click();
   }
 
   // ---- product / user / settings / catalogue surfaces ----------------
-
-  /** @returns {Promise<void>} */
-  async assertProductInformationVisible() {
-    // Product Information renders a content panel — assert the page is no
-    // longer showing the spinner and the URL is the right tab.
-    await expect(this.page).toHaveURL(/[?&]tab=product-information(?:&|$)/);
-    const spinner = this.page.locator('svg.animate-spin').first();
-    await expect(spinner).toHaveCount(0, { timeout: 15_000 });
-  }
-
-  /** @returns {Promise<void>} */
-  async assertUserManagementVisible() {
-    await expect(this.page).toHaveURL(/[?&]tab=user-management(?:&|$)/);
-    // Add New User button is the User Management surface's signature CTA —
-    // it only appears when the user-management tab is mounted.
-    await expect(this.page.getByRole('button', { name: /add\s*new\s*user/i })).toBeVisible();
-  }
-
-  /**
-   * @param {MerchantSettingId} setting
-   * @returns {Promise<void>}
-   */
-  async assertSettingVisible(setting) {
-    if (setting === 'ip-whitelist') {
-      await expect(
-        this.page.getByRole('heading', { name: /ip\s*whitelisting\s*configuration/i }).first()
-      ).toBeVisible();
-      await expect(this.page.getByRole('button', { name: /add\s*ip\s*address/i })).toBeVisible();
-      return;
-    }
-    await expect(
-      this.page.getByRole('heading', { name: /webhook\s*url\s*configuration/i }).first()
-    ).toBeVisible();
-    // The Add Webhook URL button is only present when no webhook exists — no
-    // hard assertion on it; the section header is enough to confirm mount.
-  }
-
-  /**
-   * @param {MerchantCatalogueId} item
-   * @returns {Promise<void>}
-   */
-  async assertCatalogueVisible(item) {
-    if (item === 'categories') {
-      await expect(this.page.getByRole('heading', { name: /categories/i }).first()).toBeVisible();
-      return;
-    }
-    await expect(this.page.getByRole('heading', { name: /products/i }).first()).toBeVisible();
-  }
 
   // ---- navigation -----------------------------------------------------
 

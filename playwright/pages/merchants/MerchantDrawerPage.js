@@ -37,15 +37,9 @@ export class MerchantDrawerPage {
     await expect(this.page).toHaveURL(/[?&]drawer=/);
   }
 
-  /** @returns {Promise<void>} */
-  async assertSectionsVisible() {
-    // Drawer should always render the three primary sections, even on a
-    // skeleton merchant — assert each independently so failures pinpoint the
-    // missing section rather than a generic "drawer empty" message.
-    await expect(this.businessSection).toBeVisible();
-    await expect(this.contactSection).toBeVisible();
-    await expect(this.productSection).toBeVisible();
-  }
+  // `businessSection` / `contactSection` / `productSection` are public
+  // locators — the spec asserts them one by one so a failure names the missing
+  // section instead of a generic "drawer empty".
 
   /** @returns {Promise<void>} */
   async toggleApiKeys() {

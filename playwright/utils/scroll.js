@@ -36,6 +36,8 @@ export async function scrollUntilRowCount(page, opts) {
   let idleStreak = 0;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const before = await rowsLocator.count();
+
     if (scrollContainer) {
       await scrollContainer.evaluate((el, step) => {
         el.scrollTop = el.scrollTop + step;
@@ -44,7 +46,17 @@ export async function scrollUntilRowCount(page, opts) {
       await page.evaluate((step) => window.scrollBy(0, step), stepPx);
     }
 
-    await page.waitForTimeout(settleMs);
+    // Wait for the *next* row to attach rather than sleeping a fixed
+    // `settleMs`. Two outcomes, both wanted:
+    //   * a new row renders  -> resolves immediately (usually well under
+    //     settleMs, so a long scroll is markedly faster than the old sleep),
+    //   * nothing renders    -> rejects at settleMs, which IS the idle signal
+    //     this loop is looking for. The rejection is expected control flow,
+    //     not a swallowed failure: `count()` below is the actual measurement.
+    await rowsLocator
+      .nth(before)
+      .waitFor({ state: 'attached', timeout: settleMs })
+      .catch(() => {});
 
     const current = await rowsLocator.count();
 

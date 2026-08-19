@@ -22,25 +22,22 @@
 //
 // Skipped when TEST_PARTNER_PASSWORD isn't configured so a fresh checkout
 // doesn't fail noisily before .env is set up.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { MerchantRegistrationPage } from '../../pages/onboarding/MerchantRegistrationPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_PARTNER_CREDS =
   !!TEST_CONFIG.partnerCredentials.username && !!TEST_CONFIG.partnerCredentials.password;
 
-test.describe('THIRDPARTY (partner) — creates a referral merchant from Sales Lead', () => {
+test.describe('THIRDPARTY (partner) — creates a referral merchant from Sales Lead', { tag: ['@regression', '@onboarding'] }, () => {
   test.skip(!HAS_PARTNER_CREDS, 'TEST_PARTNER_USERNAME / TEST_PARTNER_PASSWORD env vars not set');
 
   test('logs in, navigates to Sales Lead, clicks Create Account, fills Business Details and creates a referral merchant application', async ({
     page,
+    loginPage: login,
+    merchantRegistrationPage: registration,
   }) => {
     test.slow();
-
-    const login = new LoginPage(page);
-    const registration = new MerchantRegistrationPage(page);
 
     await test.step('sign in as the onboarded partner', async () => {
       await login.goto();
@@ -138,7 +135,12 @@ test.describe('THIRDPARTY (partner) — creates a referral merchant from Sales L
     });
 
     await test.step('stop on the Submit step — do NOT submit the dummy application', async () => {
-      await registration.assertOnSubmitStep();
+      await expect(
+        registration.submitStepTab,
+        'the wizard should be on the final (Submit) step'
+      ).toBeVisible({ timeout: 30_000 });
+      // The submit step's footer drops the Next button.
+      await expect(registration.nextButton).toHaveCount(0);
       log.info(
         'Reseller referral-merchant flow: reached Submit Application — leaving the application unsubmitted.'
       );

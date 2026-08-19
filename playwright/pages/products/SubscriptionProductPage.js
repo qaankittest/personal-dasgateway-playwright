@@ -58,21 +58,21 @@ export class SubscriptionProductPage {
   }
 
   /**
-   * Assert a subscriber row is present in the Subscribers table. Matches on
-   * the email (unique per subscriber) and the full name — both are rendered
-   * in the row (`E2E Subscriber` / `e2e.subscriber@example.com`). The list can
-   * paginate, so this waits for the row to materialise.
+   * The subscriber's row in the Subscribers table. Matches on the email
+   * (unique per subscriber) and the full name — both are rendered in the row
+   * (`E2E Subscriber` / `e2e.subscriber@example.com`). The list can paginate,
+   * so the spec should assert on it with a generous timeout.
    *
    * @param {string} fullName
    * @param {string} email
+   * @returns {import('@playwright/test').Locator}
    */
-  async assertSubscriberPresent(fullName, email) {
-    const row = this.page
+  subscriberRow(fullName, email) {
+    return this.page
       .locator('table tbody tr')
       .filter({ hasText: email })
       .filter({ hasText: fullName })
       .first();
-    await expect(row).toBeVisible({ timeout: 20_000 });
   }
 
   /** Open the create-plan drawer. The header reads "New Subscription Plan"

@@ -15,35 +15,24 @@
 //
 // Edit `playwright/fixtures/products/subscription.json` to swap merchant /
 // product type / plan economics / subscriber — no spec edit required.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { ProductsListPage } from '../../pages/products/ProductsListPage.js';
-import { SubscriptionProductPage } from '../../pages/products/SubscriptionProductPage.js';
-import { SubscriptionPlanDrawer } from '../../pages/products/SubscriptionPlanDrawer.js';
-import { SubscriptionDrawer } from '../../pages/products/SubscriptionDrawer.js';
+import { test, expect } from '../../fixtures/base.js';
 import { loadSubscriptionConfig } from '../../fixtures/products/load.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
+import { uniqueToken } from '../../data/uniq.js';
 
 const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
 
-test.describe('Products / Subscription — JSON-driven', () => {
+test.describe('Products / Subscription — JSON-driven', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('creates a plan, then a subscription against that plan', async ({ page }) => {
+  test('creates a plan, then a subscription against that plan', async ({ page, loginPage, productsListPage: productsPage, subscriptionProductPage: subPage, subscriptionPlanDrawer: planDrawer, subscriptionDrawer: subDrawer }) => {
     test.slow();
 
     const config = loadSubscriptionConfig();
     // Per-run unique plan name so the subscription form can select this exact
     // plan and the table assertion can't collide with prior runs' plans.
-    const runId = Date.now().toString(36);
-    const planName = `${config.plan.planName} ${runId}`;
-
-    const loginPage = new LoginPage(page);
-    const productsPage = new ProductsListPage(page);
-    const subPage = new SubscriptionProductPage(page);
-    const planDrawer = new SubscriptionPlanDrawer(page);
-    const subDrawer = new SubscriptionDrawer(page);
+    const planName = `${config.plan.planName} ${uniqueToken()}`;
 
     await test.step('login as internal user', async () => {
       await loginPage.goto();
@@ -115,7 +104,9 @@ test.describe('Products / Subscription — JSON-driven', () => {
       // "e2e.subscriber@example.com").
       await subPage.openSubscribersTab();
       const fullName = `${config.subscription.firstName} ${config.subscription.lastName}`;
-      await subPage.assertSubscriberPresent(fullName, config.subscription.email);
+      await expect(subPage.subscriberRow(fullName, config.subscription.email)).toBeVisible({
+        timeout: 20_000,
+      });
       log.info('Subscription spec — subscriber present in Subscribers tab', {
         fullName,
         email: config.subscription.email,

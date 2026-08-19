@@ -7,6 +7,10 @@
     "postinstall": "playwright install chromium",
     "test": "playwright test --config=playwright/playwright.config.js --ui",
     "test:no-ui": "playwright test --config=playwright/playwright.config.js",
+    "test:smoke": "playwright test --config=playwright/playwright.config.js --grep @smoke",
+    "test:regression": "playwright test --config=playwright/playwright.config.js --grep @regression",
+    "test:onboarding": "playwright test --config=playwright/playwright.config.js --grep @onboarding",
+    "test:read-only": "playwright test --config=playwright/playwright.config.js --grep-invert \"@mutating|@temp\"",
     "test:e2e:report": "playwright show-report playwright/reports/html"
   },
   "devDependencies": {

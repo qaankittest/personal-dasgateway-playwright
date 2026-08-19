@@ -19,27 +19,25 @@
 //
 // Edit `playwright/fixtures/onboarding/become-a-partner.json` to drive
 // different field values — no spec edit required.
-import { test, expect } from '@playwright/test';
-import { GuestSignUpPage } from '../../pages/onboarding/GuestSignUpPage.js';
-import { MerchantRegistrationPage } from '../../pages/onboarding/MerchantRegistrationPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { loadPartnerConfig, resolveSignUp } from '../../fixtures/onboarding/load.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_PASSWORD = !!TEST_CONFIG.credentials.password;
 
-test.describe('GUESTTHIRDPARTY partner onboarding — JSON-driven', () => {
+test.describe('GUESTTHIRDPARTY partner onboarding — JSON-driven', { tag: ['@regression', '@onboarding'] }, () => {
   test.skip(!HAS_PASSWORD, 'TEST_PASSWORD env var not set');
 
   test('fills every tab from become-a-partner.json, stopping at the final step', async ({
     page,
+    guestSignUpPage: signUp,
+    merchantRegistrationPage: registration,
   }) => {
     test.slow();
 
     const config = loadPartnerConfig();
     const { account, password, otp } = resolveSignUp(config.signUp);
-    const signUp = new GuestSignUpPage(page);
-    const registration = new MerchantRegistrationPage(page);
     const email = account.email;
     log.info('JSON-driven partner e2e — sign-up email', { email });
 
@@ -87,7 +85,12 @@ test.describe('GUESTTHIRDPARTY partner onboarding — JSON-driven', () => {
     });
 
     await test.step('stop at the final step — do NOT submit', async () => {
-      await registration.assertOnSubmitStep();
+      await expect(
+        registration.submitStepTab,
+        'the wizard should be on the final (Submit) step'
+      ).toBeVisible({ timeout: 30_000 });
+      // The submit step's footer drops the Next button.
+      await expect(registration.nextButton).toHaveCount(0);
       log.info('JSON-driven partner: reached Submit step (NOT submitted).');
     });
   });

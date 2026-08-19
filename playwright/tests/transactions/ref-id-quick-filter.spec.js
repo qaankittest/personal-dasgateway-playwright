@@ -13,9 +13,7 @@
 //
 // Skipped unless TEST_USERNAME / TEST_PASSWORD are configured (the signed-in
 // user must also have visibility of transaction data).
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { TransactionsPage } from '../../pages/transactions/TransactionsPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
@@ -30,15 +28,15 @@ function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test.describe('Transactions — Transaction Ref ID quick filter (table header)', () => {
+test.describe('Transactions — Transaction Ref ID quick filter (table header)', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
   test('header quick filter narrows the table to the matching Transaction Ref ID', async ({
     page,
+    loginPage,
+    transactionsPage: transactions,
   }) => {
     test.slow();
-    const loginPage = new LoginPage(page);
-    const transactions = new TransactionsPage(page);
 
     await test.step('login + open transactions', async () => {
       await loginPage.goto();
@@ -74,10 +72,14 @@ test.describe('Transactions — Transaction Ref ID quick filter (table header)',
       await transactions.applyQuickSearch(refId);
       await expect(page).toHaveURL(new RegExp(`[?&]uuid=${escapeRegExp(refId)}`));
 
+      // Web-first: prove the filtered table has rendered before counting it,
+      // so `matched` is read from a settled table rather than a mid-render one.
+      await expect(transactions.rows.first(), 'at least the queried row is shown').toBeVisible();
       const matched = await transactions.rows.count();
-      expect(matched, 'at least the queried row is shown').toBeGreaterThan(0);
       for (let i = 0; i < matched; i++) {
-        expect(await transactions.fullRefId(i), `row ${i} matches the filter`).toBe(refId);
+        await expect
+          .poll(() => transactions.fullRefId(i), { message: `row ${i} matches the filter` })
+          .toBe(refId);
       }
     });
 
@@ -94,7 +96,6 @@ test.describe('Transactions — Transaction Ref ID quick filter (table header)',
       await transactions.clearQuickSearch(COLUMN);
       await expect(page).not.toHaveURL(/[?&]uuid=/);
       await expect(transactions.rows.first()).toBeVisible();
-      expect(await transactions.rows.count()).toBeGreaterThan(0);
     });
   });
 });
