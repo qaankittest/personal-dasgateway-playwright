@@ -11,19 +11,17 @@
 // playwright/fixtures/test-config.js. Tests are skipped when credentials are
 // missing so a `npx playwright test` run on a fresh checkout doesn't fail
 // noisily before the env file is set up.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 
 // Skip the suite when credentials are not configured. Avoids a noisy
 // `npx playwright test` failure on a fresh checkout before .env is set up.
 const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
 
-test.describe('Login', () => {
+test.describe('Login', { tag: ['@smoke'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('renders the login form', async ({ page }) => {
-    const loginPage = new LoginPage(page);
+  test('renders the login form', async ({ loginPage }) => {
     await loginPage.goto();
 
     await expect(loginPage.username).toBeVisible();
@@ -31,8 +29,7 @@ test.describe('Login', () => {
     await expect(loginPage.submit).toBeVisible();
   });
 
-  test('valid credentials redirect away from /login', async ({ page }) => {
-    const loginPage = new LoginPage(page);
+  test('valid credentials redirect away from /login', async ({ page, loginPage }) => {
     await loginPage.goto();
 
     await loginPage.login(TEST_CONFIG.credentials.username, TEST_CONFIG.credentials.password);
@@ -42,8 +39,7 @@ test.describe('Login', () => {
     await expect(page).not.toHaveURL(new RegExp(TEST_CONFIG.routes.login));
   });
 
-  test('invalid credentials keep the user on /login', async ({ page }) => {
-    const loginPage = new LoginPage(page);
+  test('invalid credentials keep the user on /login', async ({ page, loginPage }) => {
     await loginPage.goto();
 
     // Don't use loginPage.login() — its internal waitForURL would time out on
@@ -54,14 +50,18 @@ test.describe('Login', () => {
 
     await expect(page).toHaveURL(new RegExp(TEST_CONFIG.routes.login));
 
-    // Error surfacing varies — only assert if the locator resolves quickly.
-    // We do this rather than expect.toBeVisible so the test passes when the
-    // app shows the error via toast (no DOM element matched by our locator).
-    const errorVisible = await loginPage.errorMessage
-      .isVisible({ timeout: 3_000 })
-      .catch(() => false);
-    if (errorVisible) {
-      await expect(loginPage.errorMessage).toContainText(/invalid|incorrect|wrong|failed|error/i);
-    }
+    // The user is still unauthenticated: the form is back, ready for a retry.
+    // Asserted as state rather than as "an error appeared" because the app
+    // surfaces the failure inconsistently (inline vs toast) — see the note
+    // below. Both assertions are deterministic, so neither can flake.
+    await expect(loginPage.password).toBeVisible();
+    await expect(loginPage.submit).toBeEnabled();
+
+    // TODO(app-team): once [data-testid="login-error"] lands (CLAUDE.md §9),
+    // replace the two assertions above with the direct message assertion:
+    //   await expect(loginPage.errorMessage)
+    //     .toContainText(/invalid|incorrect|wrong|failed|error/i);
+    // It is deliberately not asserted today — a conditional `if (visible)`
+    // check verifies nothing on the branch where the element is absent.
   });
 });

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect } from '@playwright/test';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
+import { uniqueToken } from '../../data/uniq.js';
 import { log } from '../../utils/logger.js';
 
 /** @typedef {import('../../fixtures/onboarding/types.js').DateConfig} DateConfig */
@@ -27,7 +28,7 @@ const FIXTURE_PDF = path.join(
  * any later assertion that re-reads the same value see the same suffix. The
  * base36 timestamp is short enough to fit the backend's column limits.
  */
-const UNIQUE_SUFFIX = Date.now().toString(36).toUpperCase();
+const UNIQUE_SUFFIX = uniqueToken();
 
 /**
  * The Add/Edit Stakeholder drawer form's `id` — mirrors
@@ -630,14 +631,11 @@ export class MerchantRegistrationPage {
    *  at 100% the `SubmitApplicationForm` ("I agree"). A stakeholder whose
    *  eKYC is not Completed caps the Stakeholders step at 95%, so a
    *  fully-filled application still totals 99% — the incomplete view, not
-   *  the "I agree" form. So this only asserts arrival on the tab. */
-  async assertOnSubmitStep() {
-    await expect(
-      this.page.getByRole('tab', { name: /submit application/i, selected: true }),
-      'the wizard should be on the final (Submit) step'
-    ).toBeVisible({ timeout: 30_000 });
-    // The submit step's footer drops the Next button.
-    await expect(this.page.getByRole('button', { name: /^next$/i })).toHaveCount(0);
+   *  the "I agree" form. So arrival on the tab is all a spec can assert.
+   *
+   *  @returns {import('@playwright/test').Locator} */
+  get submitStepTab() {
+    return this.page.getByRole('tab', { name: /submit application/i, selected: true });
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────

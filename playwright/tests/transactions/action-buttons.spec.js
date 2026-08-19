@@ -1,8 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { TransactionsPage } from '../../pages/transactions/TransactionsPage.js';
-import { TransactionDetailsPage } from '../../pages/transactions/TransactionDetailsPage.js';
-import { TransactionDrawerPage } from '../../pages/transactions/TransactionDrawerPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import {
   validateRowActions,
@@ -27,14 +23,9 @@ import { log } from '../../utils/logger.js';
  * Configure the row count via env: TRANSACTION_COUNT=50 npx playwright test
  */
 
-test.describe('Transactions table — action button visibility', () => {
-  test(`validates top ${TEST_CONFIG.transactionCount} rows`, async ({ page }) => {
+test.describe('Transactions table — action button visibility', { tag: ['@regression'] }, () => {
+  test(`validates top ${TEST_CONFIG.transactionCount} rows`, async ({ page, loginPage, transactionsPage, transactionDetailsPage: detailsPage, transactionDrawer: drawer }) => {
     test.slow();
-
-    const loginPage = new LoginPage(page);
-    const transactionsPage = new TransactionsPage(page);
-    const detailsPage = new TransactionDetailsPage(page);
-    const drawer = new TransactionDrawerPage(page);
 
     await test.step('login', async () => {
       await loginPage.goto();

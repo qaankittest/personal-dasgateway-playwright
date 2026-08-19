@@ -1,8 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { TransactionsPage } from '../../pages/transactions/TransactionsPage.js';
-import { TransactionDetailsPage } from '../../pages/transactions/TransactionDetailsPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
+import { log } from '../../utils/logger.js';
 
 /**
  * TEMP verification spec (delete after): confirms the Refund button is now
@@ -12,13 +10,9 @@ import { TEST_CONFIG } from '../../fixtures/test-config.js';
 // Use the full Chromium build (installed) instead of the headless-shell.
 test.use({ channel: 'chromium' });
 
-test.describe('verify: refund button from schema API', () => {
-  test('refund visibility tracks remainingRefundAmount; no chargeback call', async ({ page }) => {
+test.describe('verify: refund button from schema API', { tag: ['@temp'] }, () => {
+  test('refund visibility tracks remainingRefundAmount; no chargeback call', async ({ page, loginPage, transactionsPage, transactionDetailsPage: detailsPage }) => {
     test.slow();
-
-    const loginPage = new LoginPage(page);
-    const transactionsPage = new TransactionsPage(page);
-    const detailsPage = new TransactionDetailsPage(page);
 
     await loginPage.goto();
     await loginPage.login(TEST_CONFIG.credentials.username, TEST_CONFIG.credentials.password);
@@ -47,6 +41,9 @@ test.describe('verify: refund button from schema API', () => {
       let chargebackCalled = false;
       /** @type {number | null} */
       let remaining = null;
+      // Flips once the schema response body has been read, so the poll below
+      // can key off "the gating data has arrived" rather than a fixed delay.
+      let schemaSettled = false;
 
       const onReq = (req) => {
         const u = req.url();
@@ -62,6 +59,7 @@ test.describe('verify: refund button from schema API', () => {
         } catch {
           /* ignore non-JSON */
         }
+        schemaSettled = true;
       };
 
       page.on('request', onReq);
@@ -71,8 +69,15 @@ test.describe('verify: refund button from schema API', () => {
         waitUntil: 'domcontentloaded',
       });
       await detailsPage.waitForReady();
-      // give the schema fetch + button gating a beat to settle
-      await page.waitForTimeout(1500);
+      // The Refund button is gated on the transaction-schema response, so wait
+      // for that response body to land instead of sleeping a fixed 1.5s. The
+      // invariants below already require this call to fire for every row.
+      await expect
+        .poll(() => schemaSettled, {
+          timeout: 20_000,
+          message: `transaction-schema response never landed for ${refId}`,
+        })
+        .toBe(true);
       const refundVisible = await detailsPage.isActionVisible('refund');
 
       page.off('request', onReq);
@@ -80,9 +85,13 @@ test.describe('verify: refund button from schema API', () => {
 
       results.push({ refId, schemaCalled, chargebackCalled, remaining, refundVisible });
 
-      console.log(
-        `[OBS] ${refId} schema=${schemaCalled} chargeback=${chargebackCalled} remaining=${remaining} refundBtn=${refundVisible}`
-      );
+      log.info('refund-schema observation', {
+        refId,
+        schemaCalled,
+        chargebackCalled,
+        remaining,
+        refundVisible,
+      });
     }
 
     // Invariants
@@ -107,8 +116,12 @@ test.describe('verify: refund button from schema API', () => {
     const withRefund = results.filter((r) => r.refundVisible).length;
     const withRemaining = results.filter((r) => (r.remaining ?? 0) > 0).length;
 
-    console.log(
-      `[SUMMARY] rows=${results.length} schemaCalledAll=${results.every((r) => r.schemaCalled)} chargebackEver=${results.some((r) => r.chargebackCalled)} remaining>0=${withRemaining} refundVisible=${withRefund}`
-    );
+    log.info('refund-schema summary', {
+      rows: results.length,
+      schemaCalledAll: results.every((r) => r.schemaCalled),
+      chargebackEver: results.some((r) => r.chargebackCalled),
+      remainingOverZero: withRemaining,
+      refundVisible: withRefund,
+    });
   });
 });

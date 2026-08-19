@@ -249,18 +249,25 @@ export class PblCreateDrawer {
    *
    * @param {string} [expectedId]
    */
-  async assertPostGenerationVisible(expectedId) {
-    await expect(this.page.getByRole('heading', { name: /^qr\s*code$/i }).first()).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(this.page.getByRole('heading', { name: /^payment\s*link$/i }).first()).toBeVisible(
-      { timeout: 15_000 }
-    );
+  get qrCodeHeading() {
+    return this.page.getByRole('heading', { name: /^qr\s*code$/i }).first();
+  }
 
-    const urlPattern = expectedId
+  get paymentLinkHeading() {
+    return this.page.getByRole('heading', { name: /^payment\s*link$/i }).first();
+  }
+
+  /** The rendered pay-by-link URL. Pass the id returned by
+   *  `generateLinkAndAwaitId` to tighten the match to that exact link.
+   *
+   * @param {string} [expectedId]
+   * @returns {import('@playwright/test').Locator}
+   */
+  generatedLinkUrl(expectedId) {
+    const pattern = expectedId
       ? new RegExp(`/paybylink/${escapeRegExp(expectedId)}\\b`)
       : /\/paybylink\/[0-9a-f-]{16,}/i;
-    await expect(this.page.getByText(urlPattern).first()).toBeVisible({ timeout: 15_000 });
+    return this.page.getByText(pattern).first();
   }
 
   // --- helpers ---------------------------------------------------------------

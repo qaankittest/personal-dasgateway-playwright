@@ -24,29 +24,24 @@
 //        c. Back to the list to continue with the next row.
 //
 // Configure the row count via env: MERCHANT_COUNT=20 npx playwright test
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { MerchantsPage } from '../../pages/merchants/MerchantsPage.js';
-import { MerchantDetailsPage } from '../../pages/merchants/MerchantDetailsPage.js';
-import { MerchantDrawerPage } from '../../pages/merchants/MerchantDrawerPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { retry } from '../../utils/retry.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
 
-test.describe('Merchants — full E2E', () => {
+test.describe('Merchants — full E2E', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
   test(`covers list, drawer, and details surface for top ${TEST_CONFIG.merchantCount} merchants`, async ({
     page,
+    loginPage,
+    merchantsPage,
+    merchantDetailsPage: detailsPage,
+    merchantDrawer: drawer,
   }) => {
     test.slow();
-
-    const loginPage = new LoginPage(page);
-    const merchantsPage = new MerchantsPage(page);
-    const detailsPage = new MerchantDetailsPage(page);
-    const drawer = new MerchantDrawerPage(page);
 
     await test.step('login', async () => {
       await loginPage.goto();
@@ -102,7 +97,14 @@ test.describe('Merchants — full E2E', () => {
             async () => {
               await merchantsPage.openDrawer(snap.index);
               await drawer.waitForReady();
-              await drawer.assertSectionsVisible();
+
+              // The drawer always renders its three primary sections, even for
+              // a skeleton merchant. Asserted separately so a failure names the
+              // missing section rather than saying "drawer empty".
+              await expect(drawer.businessSection).toBeVisible();
+              await expect(drawer.contactSection).toBeVisible();
+              await expect(drawer.productSection).toBeVisible();
+
               await drawer.toggleApiKeys();
               await drawer.close();
             },
@@ -115,34 +117,53 @@ test.describe('Merchants — full E2E', () => {
               await merchantsPage.openDetailsByRow(snap.index);
               await detailsPage.waitForReady();
 
-              // Default tab — merchant-information + each pill variant.
-              await detailsPage.assertMerchantInformationVisible();
+              // Default tab — the pills plus a section heading are the signal
+              // that merchant-information mounted rather than stalling.
+              await expect(detailsPage.infoPill('all')).toBeVisible();
+              await expect(detailsPage.businessDetailsHeading).toBeVisible();
+
+              // Each pill swaps the rendered DOM rather than toggling
+              // visibility, so the hidden half must be absent, not invisible.
               await detailsPage.selectInfoPill('business-details');
+              await expect(detailsPage.businessDetailsHeading).toBeVisible();
+              await expect(detailsPage.contactDetailsHeading).toHaveCount(0);
+
               await detailsPage.selectInfoPill('contact-details');
+              await expect(detailsPage.contactDetailsHeading).toBeVisible();
+              await expect(detailsPage.businessDetailsHeading).toHaveCount(0);
+
               await detailsPage.selectInfoPill('all');
+              await expect(detailsPage.businessDetailsHeading).toBeVisible();
+              await expect(detailsPage.contactDetailsHeading).toBeVisible();
 
               // Live API Keys popover.
               await detailsPage.openLiveApiKeys();
 
-              // Product Information.
+              // Product Information — right tab, and the panel finished loading.
               await detailsPage.switchTab('product-information');
-              await detailsPage.assertProductInformationVisible();
+              await expect(page).toHaveURL(/[?&]tab=product-information(?:&|$)/);
+              await expect(detailsPage.loadingSpinner).toHaveCount(0, { timeout: 15_000 });
 
               // User Management.
               await detailsPage.switchTab('user-management');
-              await detailsPage.assertUserManagementVisible();
+              await expect(page).toHaveURL(/[?&]tab=user-management(?:&|$)/);
+              await expect(detailsPage.addNewUserButton).toBeVisible();
 
               // Merchant Settings → both sub-items.
               await detailsPage.openSettings('ip-whitelist');
-              await detailsPage.assertSettingVisible('ip-whitelist');
+              await expect(detailsPage.ipWhitelistHeading).toBeVisible();
+              await expect(detailsPage.addIpAddressButton).toBeVisible();
+
               await detailsPage.openSettings('webhook-url-configuration');
-              await detailsPage.assertSettingVisible('webhook-url-configuration');
+              // Header only: "Add Webhook URL" renders solely when no webhook
+              // exists yet, so it is not a stable signal of the section mount.
+              await expect(detailsPage.webhookConfigHeading).toBeVisible();
 
               // Merchant Catalogue → both sub-items.
               await detailsPage.openCatalogue('categories');
-              await detailsPage.assertCatalogueVisible('categories');
+              await expect(detailsPage.catalogueHeading('categories')).toBeVisible();
               await detailsPage.openCatalogue('products');
-              await detailsPage.assertCatalogueVisible('products');
+              await expect(detailsPage.catalogueHeading('products')).toBeVisible();
 
               // Back to default tab so the next iteration starts clean.
               await detailsPage.switchTab('merchant-information');

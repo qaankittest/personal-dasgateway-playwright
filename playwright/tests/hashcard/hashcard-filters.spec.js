@@ -15,10 +15,8 @@
 // other (AND semantics → empty result).
 //
 // Read-only: nothing here mutates backend state.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import {
-  HashCardPage,
   HASHCARD_COL,
   HASHCARD_FILTER_FIELDS,
   HASHCARD_STATUS_PARAM,
@@ -42,13 +40,11 @@ const PILL_TO_STATUS = {
 /** A 32-char hex string that is not a real whitelisted card. */
 const NON_EXISTENT_CARD = 'deadbeef00000000000000000cafef00d';
 
-test.describe('Hash Card — Advanced Filters', () => {
+test.describe('Hash Card — Advanced Filters', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('every filter narrows the table to matching rows (positive + negative)', async ({ page }) => {
+  test('every filter narrows the table to matching rows (positive + negative)', async ({ page, loginPage, hashCardPage: hashCard }) => {
     test.slow();
-    const loginPage = new LoginPage(page);
-    const hashCard = new HashCardPage(page);
 
     await test.step('login and navigate to the Hash Card tab', async () => {
       await loginPage.goto();
@@ -93,7 +89,7 @@ test.describe('Hash Card — Advanced Filters', () => {
       const numbers = await hashCard.columnValues(HASHCARD_COL.hashCardNumber);
       expect(numbers.length, 'no rows for a card number read off the live table').toBeGreaterThan(0);
       for (const n of numbers) expect(n).toBe(seedCard);
-      expect(await hashCard.appliedFilterCount()).toBe(1);
+      await expect.poll(() => hashCard.appliedFilterCount()).toBe(1);
     });
 
     await hashCard.resetFiltersViaReload();
@@ -105,7 +101,9 @@ test.describe('Hash Card — Advanced Filters', () => {
       const params = await hashCard.applyFilter();
 
       expect(params.get('hashCardNumber')).toBe(NON_EXISTENT_CARD);
-      expect(await hashCard.rowCount(), 'a bogus card number returned rows').toBe(0);
+      await expect
+        .poll(() => hashCard.rowCount(), { message: 'a bogus card number returned rows' })
+        .toBe(0);
       await expect(hashCard.emptyState).toBeVisible();
     });
 
@@ -146,7 +144,7 @@ test.describe('Hash Card — Advanced Filters', () => {
       const statuses = await hashCard.columnValues(HASHCARD_COL.status);
       expect(statuses.length, `no rows for Status = ${seedStatus}`).toBeGreaterThan(0);
       for (const s of statuses) expect(s.toUpperCase()).toBe(seedPill);
-      expect(await hashCard.appliedFilterCount()).toBe(1);
+      await expect.poll(() => hashCard.appliedFilterCount()).toBe(1);
     });
 
     await hashCard.resetFiltersViaReload();
@@ -194,7 +192,7 @@ test.describe('Hash Card — Advanced Filters', () => {
 
       expect(params.get('hashCardNumber')).toBe(seedCard);
       expect(params.get('status')).toBe(HASHCARD_STATUS_PARAM[seedStatus]);
-      expect(await hashCard.appliedFilterCount()).toBe(2);
+      await expect.poll(() => hashCard.appliedFilterCount()).toBe(2);
 
       const numbers = await hashCard.columnValues(HASHCARD_COL.hashCardNumber);
       const statuses = await hashCard.columnValues(HASHCARD_COL.status);
@@ -264,16 +262,18 @@ test.describe('Hash Card — Advanced Filters', () => {
       await hashCard.setRuleField(HASHCARD_FILTER_FIELDS.hashCardNumber);
       await hashCard.setRuleText(seedCard);
       await hashCard.applyFilter();
-      expect(await hashCard.rowCount()).toBeGreaterThan(0);
-      expect(await hashCard.appliedFilterCount()).toBe(1);
+      await expect.poll(() => hashCard.rowCount()).toBeGreaterThan(0);
+      await expect.poll(() => hashCard.appliedFilterCount()).toBe(1);
 
       await hashCard.openFilter();
       await hashCard.resetFilter();
 
-      expect(await hashCard.appliedFilterCount(), 'filter badge survived Reset').toBe(0);
-      expect(await hashCard.rowCount(), 'Reset did not restore the full table').toBe(
-        baselineRowCount
-      );
+      await expect
+        .poll(() => hashCard.appliedFilterCount(), { message: 'filter badge survived Reset' })
+        .toBe(0);
+      await expect
+        .poll(() => hashCard.rowCount(), { message: 'Reset did not restore the full table' })
+        .toBe(baselineRowCount);
     });
   });
 });

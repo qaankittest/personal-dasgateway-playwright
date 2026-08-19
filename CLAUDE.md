@@ -29,9 +29,13 @@ playwright/
 ├── playwright.config.js     # testDir, reporters, baseURL, viewport 1680×900
 ├── .env.example             # copy → .env, fill creds
 ├── fixtures/
+│   ├── base.js              # THE fixture barrel — specs import { test, expect } from here
 │   ├── test-config.js       # BASE_URL, route(), TEST_CONFIG, ACTION_LABELS
 │   ├── onboarding/          # JSON fixtures + load.js + types.js
 │   └── products/            # JSON fixtures + load.js + types.js
+├── data/
+│   ├── uniq.js              # runId + uniqueSuffix/Name/Email/Token — worker-safe
+│   └── builders.js          # pure record builders (guestEmail, buildGuestAccount)
 ├── pages/                   # POMs, split by domain
 │   ├── auth/  merchants/  transactions/  onboarding/  finance/  products/
 ├── utils/
@@ -50,6 +54,12 @@ playwright/
 npm test                 # runs the suite in --ui mode
 npm run test:no-ui       # headless run (CI-style)
 npm run test:e2e:report  # open the last HTML report
+
+# selective runs, driven by the tags on each test.describe:
+npm run test:smoke       # @smoke      — login + transactions list
+npm run test:regression  # @regression — everything substantive
+npm run test:onboarding  # @onboarding — the GUEST/partner application flows
+npm run test:read-only   # everything except @mutating and @temp
 
 # override at runtime — no code change:
 TRANSACTION_COUNT=100 npm run test:no-ui
@@ -101,6 +111,13 @@ optional `BASE_URL`, `TEST_OTP` (1234), `TEST_GUEST_EMAIL_DOMAIN`,
   ```
   testid first → role/accessible-name → structural fallback. The app is
   under-instrumented, so `.or()` fallback chains are the norm, not an exception.
+- **No verification in a POM.** A page object holds locators and actions; the
+  spec states what must be true. Expose a locator (`get businessDetailsHeading()`,
+  `subscriberRow(name, email)`) and let the spec assert on it — a method that
+  returns a string or boolean throws Playwright's auto-retry away. There are no
+  `assert*()` methods left in `pages/`; don't add one back.
+  Two deliberate exceptions, both *waits* rather than verifications: the
+  readiness gates below, and the network assertions on mutations further down.
 - **Every POM has** `goto()` (navigates via `TEST_CONFIG.routes.*`) and a
   readiness gate that: polls for "rows present **or** empty state", then asserts
   `skeletonRows` reach `toHaveCount(0)`. Reuse this shape.
@@ -145,6 +162,15 @@ are **not** native form controls. Rules that keep locators stable:
 
 ## 7. Spec conventions
 
+- **Import `{ test, expect }` from `fixtures/base.js`, never from
+  `@playwright/test`.** Page objects arrive as fixtures — a spec never calls
+  `new SomePage(page)`. Destructure with a rename when a shorter local name
+  reads better: `async ({ page, statementsPage: statements }) => {…}`.
+  Only the fixtures a test names are constructed.
+- **Tag every `test.describe`** so runs can be sliced:
+  `test.describe('…', { tag: ['@regression'] }, () => {…})`. Tags in use:
+  `@smoke`, `@regression`, `@onboarding`, `@mutating` (changes backend state),
+  `@temp` (throwaway probe — see §4.2). See §2 for the matching npm scripts.
 - Wrap in `test.describe`; **self-skip** when prerequisites are missing:
   `test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD not set')`.
 - Structure the body with `test.step('…', async () => {…})` so failures pinpoint
@@ -167,8 +193,16 @@ are **not** native form controls. Rules that keep locators stable:
   `readFileSync` + `JSON.parse`, **not** a JSON import — a runtime read keeps the
   fixture editable and sidesteps ESM import-attributes ceremony) and a `types.js`
   holding the JSDoc `@typedef`s for that domain's shapes.
-- GUEST onboarding: emails template `{{unique}}` → a per-run base-36 timestamp so
+- GUEST onboarding: emails template `{{unique}}` → a token from `data/uniq.js` so
   reruns never hit "email already registered"; secrets fall back to `TEST_CONFIG`.
+- **All uniqueness comes from `data/uniq.js`.** It mints `runId` once per
+  process (including `TEST_WORKER_INDEX`) and appends a monotonic counter, so
+  two workers cannot collide even inside the same millisecond — which a bare
+  `Date.now()` can. Never hand-roll a timestamp suffix; call `uniqueToken()` /
+  `uniqueName()` / `uniqueEmail()`. Set `RUN_ID` to pin the prefix.
+- **Record shapes live in `data/builders.js`** as pure functions — no network,
+  no `page`, `overrides` spread last (`buildGuestAccount({ email })`). Test data
+  never lives on a page object.
 
 ## 9. Recommended `data-testid`s (ask app team to add — removes brittleness)
 
@@ -209,4 +243,10 @@ Ongoing conventions and things to build. Add freely.
 - Use temporary `_discover-*.spec.js` probes to map filterable columns → URL
   params, then delete them.
 - Prefer testid-first locators; lobby the app team to add the testids in §9.
+- The suite follows `skills/playwright-automation-standards` (golden rules,
+  locators, waiting) plus its `references/{assertions,fixtures,page-objects,
+  data-factory}.md`. Read the matching reference before writing that kind of
+  code. Where the skill and this file disagree, **this file wins** — the two
+  known divergences are ESM (the skill assumes CommonJS) and `fullyParallel:
+  false` (the skill defaults it true; see the config comment for why).
 - _(add your own patterns / ideas here)_

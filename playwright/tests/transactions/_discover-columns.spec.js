@@ -1,16 +1,13 @@
 // TEMP discovery spec (phase 2): for every filterable column, derive a live
 // value from the table, apply its quick filter, and record the URL param +
 // resulting rows + whether the value round-trips. Delete after use.
-import { test } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { TransactionsPage } from '../../pages/transactions/TransactionsPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
+import { log } from '../../utils/logger.js';
 
-test('discover column filters', async ({ page }) => {
+test('discover column filters', { tag: ['@temp'] }, async ({ page, loginPage, transactionsPage: transactions }) => {
   test.slow();
   test.setTimeout(300_000);
-  const loginPage = new LoginPage(page);
-  const transactions = new TransactionsPage(page);
 
   await loginPage.goto();
   await loginPage.login(TEST_CONFIG.credentials.username, TEST_CONFIG.credentials.password);
@@ -80,8 +77,14 @@ test('discover column filters', async ({ page }) => {
       const input = dialog.locator('input[type="text"]').first();
       const placeholder = await input.getAttribute('placeholder');
       await input.fill(value);
+      const urlBefore = page.url();
       await input.press('Enter');
-      await page.waitForTimeout(1200);
+      // Applying a filter pushes its param onto the URL — wait for that push
+      // rather than sleeping. Discovering *which* columns do this is the whole
+      // point of the probe, so a column that pushes nothing simply falls
+      // through after the timeout and is recorded with its unchanged params.
+      await page.waitForURL((u) => u.toString() !== urlBefore, { timeout: 10_000 }).catch(() => {});
+      await expect(transactions.rows.first().or(transactions.emptyState)).toBeVisible();
 
       const url = new URL(page.url());
       const params = Object.fromEntries(url.searchParams.entries());
@@ -92,5 +95,5 @@ test('discover column filters', async ({ page }) => {
       results.push({ label, tdIndex, lineIndex, error: String(e).slice(0, 140) });
     }
   }
-  console.log('\n===RESULTS===\n' + JSON.stringify(results, null, 1) + '\n===END_RESULTS===\n');
+  log.info('discovered column filters', results);
 });

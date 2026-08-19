@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TEST_CONFIG } from '../test-config.js';
-import { GuestSignUpPage } from '../../pages/onboarding/GuestSignUpPage.js';
+import { guestEmail } from '../../data/builders.js';
+import { uniqueToken } from '../../data/uniq.js';
 
 /**
  * JSON-fixture loaders. Kept out of the specs themselves so the spec body
@@ -49,14 +50,14 @@ export function loadPartnerConfig() {
  */
 export function resolveSignUp(signUp) {
   const su = signUp ?? {};
-  const uniqueToken = Date.now().toString(36).toUpperCase();
-  const rawEmail = su.email?.replace(/\{\{unique\}\}/g, uniqueToken);
+  const token = uniqueToken();
+  const rawEmail = su.email?.replace(/\{\{unique\}\}/g, token);
   return {
     account: {
       firstName: su.firstName ?? 'PO',
       lastName: su.lastName ?? 'Tester',
       phone: su.phone ?? '9012345678',
-      email: rawEmail && rawEmail.length > 0 ? rawEmail : GuestSignUpPage.uniqueEmail(),
+      email: rawEmail && rawEmail.length > 0 ? rawEmail : guestEmail(),
       businessLocation: su.businessLocation,
       phoneCode: su.phoneCode,
     },

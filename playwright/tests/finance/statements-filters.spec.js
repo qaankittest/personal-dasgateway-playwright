@@ -13,9 +13,7 @@
 //
 // Skipped unless TEST_USERNAME / TEST_PASSWORD are configured (the signed-in
 // user must also have visibility of statement data).
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { StatementsPage } from '../../pages/finance/StatementsPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
@@ -47,13 +45,11 @@ function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test.describe('Statements — filters match the table output', () => {
+test.describe('Statements — filters match the table output', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('every filter type narrows the table to matching rows', async ({ page }) => {
+  test('every filter type narrows the table to matching rows', async ({ page, loginPage, statementsPage: statements }) => {
     test.slow();
-    const loginPage = new LoginPage(page);
-    const statements = new StatementsPage(page);
 
     await test.step('login + open statements', async () => {
       await loginPage.goto();

@@ -33,9 +33,7 @@
 // to keep them distinct.
 //
 // Skipped when TEST_PARTNER_PASSWORD isn't configured.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { MerchantRegistrationPage } from '../../pages/onboarding/MerchantRegistrationPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
@@ -44,18 +42,18 @@ const HAS_PARTNER_CREDS =
 
 const MERCHANT_COUNT = 3;
 
-test.describe('THIRDPARTY (partner) — three referral merchants in one login session', () => {
+test.describe('THIRDPARTY (partner) — three referral merchants in one login session', { tag: ['@regression', '@onboarding'] }, () => {
   test.skip(!HAS_PARTNER_CREDS, 'TEST_PARTNER_USERNAME / TEST_PARTNER_PASSWORD env vars not set');
 
   test(`creates ${MERCHANT_COUNT} referral merchant applications back-to-back from Sales Lead`, async ({
     page,
+    loginPage: login,
+    merchantRegistrationPage: registration,
   }) => {
     // Long-running: three full wizard fills back to back. Per-action timeouts
     // in the POM stay strict; only the overall test budget is relaxed.
     test.slow();
 
-    const login = new LoginPage(page);
-    const registration = new MerchantRegistrationPage(page);
     /** @type {string[]} */
     const createdIds = [];
 
@@ -172,7 +170,12 @@ async function createOneReferralMerchant(page, registration, iteration) {
   await registration.fillPaymentTab();
 
   // 8. Reach Submit — never click it.
-  await registration.assertOnSubmitStep();
+  await expect(
+        registration.submitStepTab,
+        'the wizard should be on the final (Submit) step'
+      ).toBeVisible({ timeout: 30_000 });
+      // The submit step's footer drops the Next button.
+      await expect(registration.nextButton).toHaveCount(0);
   log.info('Referral merchant reached Submit step (NOT submitted)', {
     iteration,
     applicationId,

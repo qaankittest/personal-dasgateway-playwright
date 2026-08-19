@@ -40,13 +40,8 @@ export class GuestSignUpPage {
     this.agree = page.locator('#agree');
   }
 
-  /** Unique per run so the sign-up never hits an "email already registered".
-   *
-   * @returns {string}
-   */
-  static uniqueEmail() {
-    return `po-e2e-guest-${Date.now()}@${TEST_CONFIG.guestEmailDomain}`;
-  }
+  // Note: the sign-up email is *not* minted here. Test data does not belong on
+  // a page object — use `guestEmail()` from `data/builders.js`.
 
   /** The single visible `type="submit"` button of the current wizard step.
    *

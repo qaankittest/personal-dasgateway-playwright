@@ -26,25 +26,24 @@
 //   TEST_GUEST_EMAIL_DOMAIN  domain for the generated sign-up address.
 // The suite is skipped when TEST_PASSWORD is not set — a fresh checkout
 // doesn't fail noisily before .env is configured.
-import { test, expect } from '@playwright/test';
-import { GuestSignUpPage } from '../../pages/onboarding/GuestSignUpPage.js';
-import { MerchantRegistrationPage } from '../../pages/onboarding/MerchantRegistrationPage.js';
+import { test, expect } from '../../fixtures/base.js';
+import { guestEmail } from '../../data/builders.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_PASSWORD = !!TEST_CONFIG.credentials.password;
 
-test.describe('GUESTTHIRDPARTY onboarding — Individual reseller application', () => {
+test.describe('GUESTTHIRDPARTY onboarding — Individual reseller application', { tag: ['@regression', '@onboarding'] }, () => {
   test.skip(!HAS_PASSWORD, 'TEST_PASSWORD env var not set');
 
   test('starts from /login, signs up a Partner (Individual), fills every tab, stops at Submit', async ({
     page,
+    guestSignUpPage: signUp,
+    merchantRegistrationPage: registration,
   }) => {
     test.slow();
 
-    const signUp = new GuestSignUpPage(page);
-    const registration = new MerchantRegistrationPage(page);
-    const email = GuestSignUpPage.uniqueEmail();
+    const email = guestEmail();
     log.info('Partner INDIVIDUAL application e2e — sign-up email', { email });
 
     await test.step('start on /login and cross to /choose-account-type', async () => {
@@ -92,7 +91,12 @@ test.describe('GUESTTHIRDPARTY onboarding — Individual reseller application', 
     });
 
     await test.step('stop at the final step — do NOT submit', async () => {
-      await registration.assertOnSubmitStep();
+      await expect(
+        registration.submitStepTab,
+        'the wizard should be on the final (Submit) step'
+      ).toBeVisible({ timeout: 30_000 });
+      // The submit step's footer drops the Next button.
+      await expect(registration.nextButton).toHaveCount(0);
       log.info(
         'Partner INDIVIDUAL: reached the Submit Application step — leaving the application unsubmitted.'
       );

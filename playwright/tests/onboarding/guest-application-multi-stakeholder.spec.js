@@ -25,25 +25,24 @@
 //   TEST_GUEST_EMAIL_DOMAIN  domain for the generated sign-up address.
 // The suite is skipped when TEST_PASSWORD is not set, matching the login
 // suite — a fresh checkout doesn't fail noisily before .env is configured.
-import { test, expect } from '@playwright/test';
-import { GuestSignUpPage } from '../../pages/onboarding/GuestSignUpPage.js';
-import { MerchantRegistrationPage } from '../../pages/onboarding/MerchantRegistrationPage.js';
+import { test, expect } from '../../fixtures/base.js';
+import { guestEmail } from '../../data/builders.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_PASSWORD = !!TEST_CONFIG.credentials.password;
 
-test.describe('GUEST onboarding — application with three stakeholders', () => {
+test.describe('GUEST onboarding — application with three stakeholders', { tag: ['@regression', '@onboarding'] }, () => {
   test.skip(!HAS_PASSWORD, 'TEST_PASSWORD env var not set');
 
   test('signs up a fresh GUEST, adds three stakeholders, stopping at the final step', async ({
     page,
+    guestSignUpPage: signUp,
+    merchantRegistrationPage: registration,
   }) => {
     test.slow();
 
-    const signUp = new GuestSignUpPage(page);
-    const registration = new MerchantRegistrationPage(page);
-    const email = GuestSignUpPage.uniqueEmail();
+    const email = guestEmail();
     log.info('GUEST 3-stakeholder application e2e — sign-up email', { email });
 
     await test.step('sign up a fresh GUEST merchant', async () => {
@@ -77,7 +76,12 @@ test.describe('GUEST onboarding — application with three stakeholders', () => 
     });
 
     await test.step('stop at the final step — do NOT submit', async () => {
-      await registration.assertOnSubmitStep();
+      await expect(
+        registration.submitStepTab,
+        'the wizard should be on the final (Submit) step'
+      ).toBeVisible({ timeout: 30_000 });
+      // The submit step's footer drops the Next button.
+      await expect(registration.nextButton).toHaveCount(0);
       log.info('Reached the Submit step — leaving the application unsubmitted.');
     });
   });

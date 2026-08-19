@@ -13,33 +13,28 @@
 //
 // Edit `playwright/fixtures/products/pay-by-link.json` to swap merchant /
 // product type / cart items / expiry / link name — no spec edit required.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { ProductsListPage } from '../../pages/products/ProductsListPage.js';
-import { PblOrdersPage } from '../../pages/products/PblOrdersPage.js';
-import { PblCreateDrawer } from '../../pages/products/PblCreateDrawer.js';
+import { test, expect } from '../../fixtures/base.js';
 import { loadPayByLinkConfig } from '../../fixtures/products/load.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
 const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
 
-test.describe('Products / Pay By Link — JSON-driven', () => {
+test.describe('Products / Pay By Link — JSON-driven', { tag: ['@regression'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
   test('filters to a merchant + PBL product, adds items, and generates a link', async ({
     page,
+    loginPage,
+    productsListPage: productsPage,
+    pblOrdersPage: pblOrders,
+    pblCreateDrawer: drawer,
   }) => {
     test.slow();
 
     const config = loadPayByLinkConfig();
     const items = config.items ?? [];
     expect(items.length, 'pay-by-link.json must list at least one cart item').toBeGreaterThan(0);
-
-    const loginPage = new LoginPage(page);
-    const productsPage = new ProductsListPage(page);
-    const pblOrders = new PblOrdersPage(page);
-    const drawer = new PblCreateDrawer(page);
 
     await test.step('login as internal user', async () => {
       await loginPage.goto();
@@ -119,7 +114,9 @@ test.describe('Products / Pay By Link — JSON-driven', () => {
       // the QR Code section + Payment Link + public `/paybylink/<id>` URL.
       // Pass `newLinkId` so the URL assertion pins to the exact server-issued
       // ID instead of a generic uuid pattern.
-      await drawer.assertPostGenerationVisible(newLinkId);
+      await expect(drawer.qrCodeHeading).toBeVisible({ timeout: 15_000 });
+      await expect(drawer.paymentLinkHeading).toBeVisible({ timeout: 15_000 });
+      await expect(drawer.generatedLinkUrl(newLinkId)).toBeVisible({ timeout: 15_000 });
       log.info('PBL spec — post-generation block rendered with the expected URL.');
     });
   });

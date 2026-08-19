@@ -12,22 +12,16 @@
 // validates per-row cross-surface action visibility for N rows. This one
 // just guarantees the list page loads and the two primary entry points
 // (drawer + details page) work end-to-end.
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/auth/LoginPage.js';
-import { TransactionsPage } from '../../pages/transactions/TransactionsPage.js';
-import { TransactionDrawerPage } from '../../pages/transactions/TransactionDrawerPage.js';
+import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 
 // Skip the suite when credentials are not configured.
 const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
 
-test.describe('Transactions list — smoke', () => {
+test.describe('Transactions list — smoke', { tag: ['@smoke'] }, () => {
   test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
 
-  test('loads the transactions list and the row → drawer flow works', async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    const transactionsPage = new TransactionsPage(page);
-    const drawer = new TransactionDrawerPage(page);
+  test('loads the transactions list and the row → drawer flow works', async ({ page, loginPage, transactionsPage, transactionDrawer: drawer }) => {
 
     await test.step('login', async () => {
       await loginPage.goto();
