@@ -8,6 +8,10 @@ import {
 import { retry } from '../../utils/retry.js';
 import { log } from '../../utils/logger.js';
 
+// Skip the suite when credentials are not configured, like every other suite —
+// otherwise `loginPage.login()` throws and the run fails instead of skipping.
+const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
+
 /**
  * End-to-end coverage for transaction action buttons:
  *   1. Authenticate via the login page.
@@ -24,6 +28,8 @@ import { log } from '../../utils/logger.js';
  */
 
 test.describe('Transactions table — action button visibility', { tag: ['@regression'] }, () => {
+  test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
+
   test(`validates top ${TEST_CONFIG.transactionCount} rows`, async ({ page, loginPage, transactionsPage, transactionDetailsPage: detailsPage, transactionDrawer: drawer }) => {
     test.slow();
 

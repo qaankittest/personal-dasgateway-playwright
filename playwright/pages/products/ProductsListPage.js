@@ -23,9 +23,9 @@ export class ProductsListPage {
     this.page = page;
     this.pageTitle = page.getByRole('heading', { name: /^products$/i }).first();
     this.filterButton = page.getByRole('button', { name: /^filters/i }).first();
-    // The popover Content is the absolutely-positioned panel that renders
-    // "Advanced Filters" in its header.
-    this.filterPopover = page.locator(':text("Advanced Filters")').locator('..').locator('..');
+    // The popover renders inline (not portaled); its header text is the
+    // marker `applyFilters` waits on and clicks as the outside-safe element.
+    this.filterHeader = page.getByText('Advanced Filters').first();
   }
 
   async goto() {
@@ -57,7 +57,7 @@ export class ProductsListPage {
     await this.filterButton.click();
 
     // The popover renders an "Advanced Filters" header — wait for it.
-    const header = this.page.getByText('Advanced Filters').first();
+    const header = this.filterHeader;
     await expect(header).toBeVisible({ timeout: 10_000 });
 
     // The popover always renders at least one empty rule on first open. Each

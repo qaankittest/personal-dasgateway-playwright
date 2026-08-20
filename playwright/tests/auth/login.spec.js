@@ -57,7 +57,7 @@ test.describe('Login', { tag: ['@smoke'] }, () => {
     await expect(loginPage.password).toBeVisible();
     await expect(loginPage.submit).toBeEnabled();
 
-    // TODO(app-team): once [data-testid="login-error"] lands (CLAUDE.md §9),
+    // TODO(app-team): once [data-testid="login-error"] lands (skills/SKILL.md §14),
     // replace the two assertions above with the direct message assertion:
     //   await expect(loginPage.errorMessage)
     //     .toContainText(/invalid|incorrect|wrong|failed|error/i);

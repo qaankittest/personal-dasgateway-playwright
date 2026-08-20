@@ -6,14 +6,21 @@ All Playwright artefacts (config, POMs, utils, specs, reports) live in this fold
 
 ```
 playwright/
-├── playwright.config.js          # config (testDir, reporters, baseURL, webServer)
+├── playwright.config.js          # config (testDir, reporters, baseURL, viewport)
 ├── .env.example                  # copy to .env, fill in creds
 ├── .gitignore                    # ignores .env + reports
 ├── README.md
 │
 ├── fixtures/
+│   ├── base.js                   # fixture barrel — specs import { test, expect } from here
 │   ├── test-config.js            # creds, routes, scroll tuning, action labels
-│   └── sample-document.pdf       # upload fixture for the onboarding suite
+│   ├── sample-document.pdf       # upload fixture for the onboarding suite
+│   ├── onboarding/               # become-a-merchant/partner JSON + load.js + types.js
+│   └── products/                 # pay-by-link / subscription JSON + load.js + types.js
+│
+├── data/
+│   ├── uniq.js                   # runId + unique suffix / token / name / email — worker-safe
+│   └── builders.js               # pure record builders (guestEmail, buildGuestAccount)
 │
 ├── pages/
 │   ├── auth/
@@ -26,25 +33,31 @@ playwright/
 │   ├── onboarding/
 │   │   ├── GuestSignUpPage.js           # choose-type → account → OTP → password
 │   │   └── MerchantRegistrationPage.js  # /onboarding wizard tabs
-│   └── finance/
-│       ├── StatementsPage.js            # statements list, bulk chips, filter popover
-│       └── StatementEditDrawer.js       # row → details → EDIT → STATUS → Submit
+│   ├── finance/
+│   │   ├── StatementsPage.js            # statements list, bulk chips, filter popover
+│   │   └── StatementEditDrawer.js       # row → details → EDIT → STATUS → Submit
+│   ├── products/                        # products list, PBL + subscription drawers
+│   └── hashcard/
+│       └── HashCardPage.js              # hash-card whitelist + advanced filters
 │
 ├── utils/
 │   ├── scroll.js                 # scroll-until-N-rows w/ idle detection
 │   ├── retry.js                  # backoff retry helper
 │   ├── logger.js                 # structured console logging
-│   └── validators.js             # per-row + cross-surface assertions
+│   ├── validators.js             # per-row + cross-surface assertions
+│   └── dasForm.js                # drive das-form Select / DateField controls
 │
 ├── tests/
 │   ├── auth/login.spec.js
 │   ├── merchants/merchants-e2e.spec.js
-│   ├── transactions/
+│   ├── transactions/             # list smoke, action buttons, ref-id quick filter
 │   ├── finance/
 │   │   ├── statements-filters.spec.js   # each filter type vs. table output
 │   │   └── statements-actions.spec.js   # Approve / Wired Status / Edit Status
-│   └── onboarding/
-│       └── guest-application.spec.js    # GUEST sign-up → fill every tab → stop at Submit
+│   ├── hashcard/hashcard-filters.spec.js
+│   ├── products/                        # PBL link creation, subscription creation
+│   ├── onboarding/                      # GUEST + partner + referral-merchant flows
+│   └── seed.spec.js                     # seed for the Playwright agent loop (@temp)
 │
 └── reports/                      # generated; html, junit, traces, screenshots, videos
     ├── html/
@@ -55,21 +68,23 @@ playwright/
 ## Install
 
 ```bash
-npm i -D @playwright/test dotenv
-npx playwright install --with-deps chromium
+npm install          # postinstall runs `playwright install chromium`
 ```
 
-Add to `package.json` scripts:
+The npm scripts already live in the root `package.json`:
 
-```json
-{
-  "scripts": {
-    "test:e2e": "playwright test --config=playwright/playwright.config.js",
-    "test:e2e:ui": "playwright test --config=playwright/playwright.config.js --ui",
-    "test:e2e:report": "playwright show-report playwright/reports/html"
-  }
-}
-```
+| Script | Runs |
+|---|---|
+| `npm test` | whole suite in `--ui` mode |
+| `npm run test:no-ui` | headless run (CI-style) |
+| `npm run test:smoke` | `--grep @smoke` |
+| `npm run test:regression` | `--grep @regression` |
+| `npm run test:onboarding` | `--grep @onboarding` |
+| `npm run test:read-only` | everything except `@mutating` and `@temp` |
+| `npm run test:e2e:report` | opens `playwright/reports/html` |
+
+Each one passes `--config=playwright/playwright.config.js`; a single spec needs the
+same flag: `npx playwright test playwright/tests/auth/login.spec.js --config=playwright/playwright.config.js`.
 
 ## Configure
 
@@ -79,31 +94,36 @@ Copy `playwright/.env.example` → `playwright/.env` and fill in:
 BASE_URL=https://dev.paymentoptions.com/beta
 TEST_USERNAME=...
 TEST_PASSWORD=...
+TEST_PARTNER_USERNAME=...           # partner / referral-merchant suites
+TEST_PARTNER_PASSWORD=...
 TRANSACTION_COUNT=20
+MERCHANT_COUNT=10                   # merchants covered by the merchants e2e suite
 STATEMENT_COUNT=20                  # rows to load for the statements suites
 
-# GUEST onboarding suite (tests/onboarding/guest-application.spec.js)
+# GUEST onboarding suite (tests/onboarding/)
 TEST_OTP=1234                       # fixed verification OTP the dev backend accepts
 TEST_GUEST_EMAIL_DOMAIN=example.com # domain for the unique per-run sign-up email
 ```
 
-`fixtures/test-config.js` calls `dotenv.config()` so this file is loaded automatically.
-The onboarding suite reuses `TEST_PASSWORD` as the new GUEST account's password and
-is skipped when it isn't set; each run signs up a fresh GUEST under a unique email.
+`fixtures/test-config.js` calls `dotenv.config()` for `playwright/.env` **and** the
+repo-root `.env`, so it works no matter where Playwright is run from. The onboarding
+suite reuses `TEST_PASSWORD` as the new GUEST account's password and is skipped when
+it isn't set; each run signs up a fresh GUEST under a unique email.
 
 ## Run
 
 ```bash
-npm run test:e2e
+npm run test:no-ui
 
 # bump row count, no code change
-TRANSACTION_COUNT=100 npm run test:e2e
+TRANSACTION_COUNT=100 npm run test:no-ui
 
 # point at staging
-BASE_URL=https://staging.example.com npm run test:e2e
+BASE_URL=https://staging.example.com npm run test:no-ui
 ```
 
-In CI (`CI=1`), Playwright auto-starts `npm run dev` (see `webServer` block).
+There is no `webServer` block: this folder holds the e2e suite only, not the app.
+Start the app yourself, or point `BASE_URL` at a deployed environment before running.
 
 ## What it asserts per row
 

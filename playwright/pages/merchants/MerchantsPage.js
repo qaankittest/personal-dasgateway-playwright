@@ -36,7 +36,11 @@ export class MerchantsPage {
       .first();
     this.rows = page
       .getByTestId('merchants-row')
-      .or(page.locator('table tbody tr').filter({ hasNotText: /no more data|no data|empty/i }))
+      .or(
+        page
+          .locator('table tbody tr:not([data-testid="skeleton-row"])')
+          .filter({ hasNotText: /no more data|no data|empty/i })
+      )
       .filter({ has: page.locator('td:not([colspan])') });
     this.skeletonRows = page
       .getByTestId('skeleton-row')

@@ -65,10 +65,12 @@ export async function pickDasFormDate(page, fieldId, yearsOffset) {
     await nextMonth.click();
   }
 
-  const todayDom = new Date().getDate();
+  // Clamp to 28: on the 29th-31st the target month may not have that day
+  // (every month has 1..28), which would otherwise leave the click hanging.
+  const dayOfMonth = Math.min(new Date().getDate(), 28);
   const dayCell = calendar
     .locator('.react-datepicker__day:not(.react-datepicker__day--outside-month)')
-    .filter({ hasText: new RegExp(`^${todayDom}$`) })
+    .filter({ hasText: new RegExp(`^${dayOfMonth}$`) })
     .first();
   await dayCell.click();
 }

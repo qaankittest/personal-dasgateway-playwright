@@ -26,7 +26,8 @@ const FIXTURE_PDF = path.join(
  * Computing this once at module load (rather than per-fill) keeps every fill
  * within a single test run internally consistent — e.g. the Business tab and
  * any later assertion that re-reads the same value see the same suffix. The
- * base36 timestamp is short enough to fit the backend's column limits.
+ * token from `data/uniq.js` is short enough to fit the backend's column
+ * limits, and carries the worker index so parallel runs can't collide.
  */
 const UNIQUE_SUFFIX = uniqueToken();
 
@@ -937,6 +938,7 @@ export class MerchantRegistrationPage {
     // placeholder. Distinct per stakeholder (see `StakeholderInput`).
     await this.page
       .getByPlaceholder(/enter phone number/i)
+      .first()
       .fill(opts.phone)
       .catch(() => {});
     // Email — the primary stakeholder is the merchant applicant: their email
@@ -1212,6 +1214,7 @@ export class MerchantRegistrationPage {
     if (value === undefined) return;
     await this.page
       .getByPlaceholder(/enter phone number/i)
+      .first()
       .fill(value)
       .catch(() => {});
   }

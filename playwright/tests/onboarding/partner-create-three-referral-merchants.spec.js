@@ -171,11 +171,11 @@ async function createOneReferralMerchant(page, registration, iteration) {
 
   // 8. Reach Submit — never click it.
   await expect(
-        registration.submitStepTab,
-        'the wizard should be on the final (Submit) step'
-      ).toBeVisible({ timeout: 30_000 });
-      // The submit step's footer drops the Next button.
-      await expect(registration.nextButton).toHaveCount(0);
+    registration.submitStepTab,
+    'the wizard should be on the final (Submit) step'
+  ).toBeVisible({ timeout: 30_000 });
+  // The submit step's footer drops the Next button.
+  await expect(registration.nextButton).toHaveCount(0);
   log.info('Referral merchant reached Submit step (NOT submitted)', {
     iteration,
     applicationId,

@@ -45,9 +45,10 @@
  * @property {PblFilterConfig} [filters]
  * @property {PblItemConfig[]} [items] Cart items — the spec clicks "Add new item" once per entry.
  * @property {string} [linkName] Optional link name typed into Link Management. Omit / empty for none.
- * @property {DateConfig} [expiryDate] Expiry date pushed into the picker. Defaults to
- *   `{ yearsOffset: 1 }` when omitted so the link is comfortably valid even on a
- *   freshly merged branch where the date picker's minDate is today.
+ * @property {DateConfig} [expiryDate] Expiry date pushed into the picker. Omit (or
+ *   use `"today"`) to keep the picker's own prefill — it opens on today, which its
+ *   `minDate` already accepts — so `setExpiry` only navigates the calendar when a
+ *   `{ yearsOffset }` is given.
  */
 
 /* ── Subscription product e2e (`subscription.json`) ─────────────────────── */
