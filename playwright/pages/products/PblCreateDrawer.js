@@ -171,13 +171,14 @@ export class PblCreateDrawer {
       await nextMonth.click();
     }
 
-    // Pick today's day-of-month on the target month — guaranteed to exist
-    // (every month has 1..28). Use the in-month day cell to avoid the
-    // greyed-out leading/trailing days from adjacent months.
-    const todayDom = new Date().getDate();
+    // Pick a day guaranteed to exist in the target month — today's
+    // day-of-month clamped to 28, since the 29th-31st don't exist in every
+    // month. Use the in-month day cell to avoid the greyed-out leading /
+    // trailing days from adjacent months.
+    const dayOfMonth = Math.min(new Date().getDate(), 28);
     const dayCell = calendar
       .locator('.react-datepicker__day:not(.react-datepicker__day--outside-month)')
-      .filter({ hasText: new RegExp(`^${todayDom}$`) })
+      .filter({ hasText: new RegExp(`^${dayOfMonth}$`) })
       .first();
     await dayCell.click();
   }
@@ -234,25 +235,19 @@ export class PblCreateDrawer {
     return newId;
   }
 
-  /**
-   * After Generate Link succeeds, `PostGenerationBlock` renders below the
-   * Regenerate / Deactivate row with:
-   *   • a "QR Code" heading + View / Share / Download cards,
-   *   • a "Payment Link" heading,
-   *   • the public `/paybylink/<id>` URL.
-   *
-   * The block returns `null` when the server marks the link EXPIRED /
-   * INACTIVE — so seeing all three of these elements is a strong signal
-   * the link actually generated and rendered. When `expectedId` is passed
-   * (typically the value returned by `generateLinkAndAwaitId`), the URL
-   * assertion is tightened to match `/paybylink/<that exact id>`.
-   *
-   * @param {string} [expectedId]
-   */
+  // After Generate Link succeeds, `PostGenerationBlock` renders below the
+  // Regenerate / Deactivate row with a "QR Code" heading + View / Share /
+  // Download cards, a "Payment Link" heading, and the public
+  // `/paybylink/<id>` URL. The block returns `null` when the server marks the
+  // link EXPIRED / INACTIVE, so all three being visible is a strong signal the
+  // link actually generated and rendered. The spec asserts on them.
+
+  /** @returns {import('@playwright/test').Locator} */
   get qrCodeHeading() {
     return this.page.getByRole('heading', { name: /^qr\s*code$/i }).first();
   }
 
+  /** @returns {import('@playwright/test').Locator} */
   get paymentLinkHeading() {
     return this.page.getByRole('heading', { name: /^payment\s*link$/i }).first();
   }
@@ -270,40 +265,6 @@ export class PblCreateDrawer {
     return this.page.getByText(pattern).first();
   }
 
-  // --- helpers ---------------------------------------------------------------
-
-  /**
-   * @param {RegExp} label
-   * @param {string} value
-   */
-  async #fillLabeledInput(label, value) {
-    // `<label>` -> sibling `<input>` lookup. DasForm renders inputs with
-    // `htmlFor` attached to the input id, so getByLabel works against the
-    // visible label text directly.
-    const input = this.page.getByLabel(label).first();
-    await input.fill(value);
-  }
-
-  /**
-   * @param {RegExp} label
-   * @param {string} optionLabel
-   */
-  async #pickLabeledSelect(label, optionLabel) {
-    // Selects render as `<button>` triggers. Open by clicking the trigger
-    // immediately after a `<label>` whose text matches.
-    const trigger = this.page
-      .locator('label', { hasText: label })
-      .locator('..')
-      .locator('button')
-      .first();
-    await trigger.click();
-
-    const option = this.page
-      .locator('[data-filter-portal="true"]')
-      .getByRole('button', { name: new RegExp(`^${escapeRegExp(optionLabel)}$`, 'i') })
-      .first();
-    await option.click();
-  }
 }
 
 /**

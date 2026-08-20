@@ -81,26 +81,6 @@ export class MerchantDetailsPage {
     await expect(this.heading).toBeVisible();
   }
 
-  // ---- header ---------------------------------------------------------
-
-  /**
-   * The header pill text (e.g. "Total Products 12"). Returns the trimmed
-   * value beside the label or null if the pill is not currently rendered
-   * (the pill is contextual — only some tabs surface one).
-   *
-   * @param {RegExp} label
-   * @returns {Promise<string | null>}
-   */
-  async getStatsPillValue(label) {
-    const pill = this.page
-      .locator('div')
-      .filter({ has: this.page.getByText(label) })
-      .first();
-    if ((await pill.count()) === 0) return null;
-    const text = (await pill.innerText()).trim();
-    return text;
-  }
-
   // ---- tabs -----------------------------------------------------------
 
   /**

@@ -10,7 +10,11 @@ import { log } from '../../utils/logger.js';
 // Use the full Chromium build (installed) instead of the headless-shell.
 test.use({ channel: 'chromium' });
 
+const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
+
 test.describe('verify: refund button from schema API', { tag: ['@temp'] }, () => {
+  test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
+
   test('refund visibility tracks remainingRefundAmount; no chargeback call', async ({ page, loginPage, transactionsPage, transactionDetailsPage: detailsPage }) => {
     test.slow();
 

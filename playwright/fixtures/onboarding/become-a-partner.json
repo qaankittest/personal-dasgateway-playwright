@@ -35,7 +35,7 @@
     "address": "1-1 Test Building, Shibuya",
     "city": "Tokyo",
     "identificationType": "passport",
-    "identificationId": "E2E-PASS-{{unique}}",
+    "identificationId": "E2E-PRT-PASS-{{unique}}",
     "identificationIssuedDate": { "yearsOffset": -1 },
     "identificationExpDate": { "yearsOffset": 5 }
   },

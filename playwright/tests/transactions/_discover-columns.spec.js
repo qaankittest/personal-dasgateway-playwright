@@ -5,7 +5,10 @@ import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import { log } from '../../utils/logger.js';
 
+const HAS_CREDS = !!TEST_CONFIG.credentials.username && !!TEST_CONFIG.credentials.password;
+
 test('discover column filters', { tag: ['@temp'] }, async ({ page, loginPage, transactionsPage: transactions }) => {
+  test.skip(!HAS_CREDS, 'TEST_USERNAME / TEST_PASSWORD env vars not set');
   test.slow();
   test.setTimeout(300_000);
 

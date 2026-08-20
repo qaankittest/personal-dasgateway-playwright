@@ -36,7 +36,7 @@ export function loadPartnerConfig() {
 
 /** Resolve a `SignUpConfig` (or absence thereof) into the inputs the
  *  `GuestSignUpPage.register*` flows need. Substitutes `{{unique}}` in the
- *  email with a per-call base-36 timestamp so re-runs never collide on
+ *  email with a per-call `uniqueToken()` so re-runs never collide on
  *  "email already registered". Falls back to `TEST_CONFIG.credentials.password`
  *  / `TEST_CONFIG.otp` so a JSON that omits the secrets still runs in CI.
  *

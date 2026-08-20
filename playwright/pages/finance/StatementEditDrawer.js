@@ -20,9 +20,13 @@ export class StatementEditDrawer {
     this.submitButton = this.panel.getByRole('button', { name: /^submit$/i });
   }
 
-  /** @returns {import('@playwright/test').Locator} */
+  /** The STATUS menu's body-level portal. A closing menu's portal can linger
+   *  through its exit animation, so the freshly opened one is the last.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
   get #portal() {
-    return this.page.locator('[data-filter-portal="true"]');
+    return this.page.locator('[data-filter-portal="true"]').last();
   }
 
   /**

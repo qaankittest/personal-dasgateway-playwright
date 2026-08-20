@@ -226,9 +226,14 @@ export class StatementsPage {
 
   // ── Filters ────────────────────────────────────────────────────────────
 
-  /** @returns {import('@playwright/test').Locator} */
+  /** Body-level portal a Select / MultiSelect / DateRange menu renders into.
+   *  A closing menu's portal can linger through its exit animation, so the
+   *  freshly opened one is always the last.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
   get #filterPortal() {
-    return this.page.locator('[data-filter-portal="true"]');
+    return this.page.locator('[data-filter-portal="true"]').last();
   }
 
   async openFilter() {
