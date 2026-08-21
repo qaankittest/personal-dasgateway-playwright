@@ -80,7 +80,7 @@ playwright/
 │   ├── uniq.js              # runId + uniqueSuffix/Token/Name/Email/Digits — worker-safe
 │   └── builders.js          # pure record builders (guestEmail, buildGuestAccount)
 ├── pages/                   # POMs by domain
-│   ├── auth/  merchants/  transactions/  onboarding/  finance/  products/  hashcard/
+│   ├── auth/  merchants/  transactions/  onboarding/  finance/  products/  hashcard/ login
 ├── utils/
 │   ├── scroll.js            # scrollUntilRowCount (infinite scroll + idle detect)
 │   ├── retry.js             # backoff retry helper
