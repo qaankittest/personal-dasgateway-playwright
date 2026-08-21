@@ -10,8 +10,6 @@
 import { test as base, expect } from '@playwright/test';
 
 import { LoginPage } from '../pages/auth/LoginPage.js';
-import { StatementsPage } from '../pages/finance/StatementsPage.js';
-import { StatementEditDrawer } from '../pages/finance/StatementEditDrawer.js';
 import { HashCardPage } from '../pages/hashcard/HashCardPage.js';
 import { MerchantsPage } from '../pages/merchants/MerchantsPage.js';
 import { MerchantDetailsPage } from '../pages/merchants/MerchantDetailsPage.js';
@@ -31,8 +29,6 @@ import { TransactionDrawerPage } from '../pages/transactions/TransactionDrawerPa
 /**
  * @typedef {object} Poms
  * @property {LoginPage} loginPage
- * @property {StatementsPage} statementsPage
- * @property {StatementEditDrawer} statementEditDrawer
  * @property {HashCardPage} hashCardPage
  * @property {MerchantsPage} merchantsPage
  * @property {MerchantDetailsPage} merchantDetailsPage
@@ -55,14 +51,6 @@ export const test = base.extend({
   // ---- auth -------------------------------------------------------------
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
-  },
-
-  // ---- finance ----------------------------------------------------------
-  statementsPage: async ({ page }, use) => {
-    await use(new StatementsPage(page));
-  },
-  statementEditDrawer: async ({ page }, use) => {
-    await use(new StatementEditDrawer(page));
   },
 
   // ---- hashcard ---------------------------------------------------------
