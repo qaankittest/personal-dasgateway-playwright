@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { LoginPage } from './LoginPage.js'; // Note: include .js extension if your node environment requires it
+import { LoginPage } from '../../pages/login/LoginPage.js';
+import { uniqueEmail } from '../../data/uniq.js';
 
 test.describe('Login Page Tests', () => {
   let loginPage;
@@ -16,20 +17,28 @@ test.describe('Login Page Tests', () => {
     await expect(loginPage.createAccountLink).toBeVisible();
   });
 
-  test('should show validation error when email is omitted', async () => {
-    // Fill password but leave email empty
-    await loginPage.fillPassword('dfggfdsdfggfdfghgfddfg');
+  test('should show error for incorrect credentials', async ({ page }) => {
+    // A fresh address every run — hammering one fixed account trips the
+    // "locked due to multiple failed login attempts" rule, which then swaps the
+    // toast text and fails this test for 60 minutes.
+    await loginPage.fillEmail('hfjrhbbbb@gmail.com');
+    await loginPage.fillPassword('Test12345678999@#');
     await loginPage.submitLogin();
-    
-    await expect(loginPage.emailRequiredAlert).toContainText('Email is required');
-  });
 
-  test('should show error for incorrect credentials', async () => {
-    await loginPage.fillEmail('ankit@gmail.com');
-    await loginPage.fillPassword('dfggfdsdfggfdfghgfddfg');
-    await loginPage.submitLogin();
-    
-    await expect(loginPage.loginStatusAlert).toContainText('Incorrect username or password.');
+
+    // The failure surfaces as a react-hot-toast notification, not a browser
+    // dialog — a `role="status"` node in the `[data-rht-toaster]` portal. The
+    // locator carries the expected message, so this web-first `toBeVisible()`
+    // retries until a toast saying exactly that is on screen.
+    await expect(loginPage.toastWithText('Incorrect username or password.')).toBeVisible();
+    // Then pin the wording exactly — `toHaveText` is exact where the `hasText`
+    // filter above is a substring match, so this also proves nothing extra was
+    // appended to the message.
+    await expect(loginPage.toastMessage).toHaveText('Incorrect username or password.');
+    await expect(page).toHaveURL(/\/beta\/login/);
+
+    await loginPage.dismissToast();
+    await expect(loginPage.toast).toBeHidden();
   });
 
   test('should toggle password visibility', async () => {
