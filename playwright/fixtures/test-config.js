@@ -34,6 +34,12 @@ export const TEST_CONFIG = {
   },
   routes: {
     login: route('/login'),
+    forgotPassword: route('/forgot-password'),
+    // The OTP step and the new-password step of the forgot-password wizard
+    // share this one URL — the card swaps its body rather than navigating,
+    // exactly like the GUEST sign-up wizard. A cold hit on this route always
+    // renders the OTP step.
+    resetPassword: route('/reset-password'),
     transactions: route('/transactions'),
     transactionDetails: (refId) => route(`/transactions/${refId}`),
     merchants: route('/accounts/merchants'),
