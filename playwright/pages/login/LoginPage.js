@@ -1,3 +1,5 @@
+import { TEST_CONFIG } from '../../fixtures/test-config.js';
+
 export class LoginPage {
   /**
    * @param {import('@playwright/test').Page} page
@@ -5,7 +7,7 @@ export class LoginPage {
   constructor(page) {
     this.page = page;
     
-    // Locators
+    //  Locators
     this.pageHeading = page.getByRole('paragraph').filter({ hasText: 'Sign in to Payment Options' });
     this.emailInput = page.getByRole('textbox', { name: 'Email Address' });
     this.passwordInput = page.getByRole('textbox', { name: 'Password' });
@@ -36,7 +38,7 @@ export class LoginPage {
 
   // Actions
   async goto() {
-    await this.page.goto('https://dev.paymentoptions.com/beta/login');
+    await this.page.goto(TEST_CONFIG.routes.login);
   }
 
   async fillEmail(email) {
@@ -49,6 +51,26 @@ export class LoginPage {
 
   async submitLogin() {
     await this.signInBtn.click();
+  }
+
+  /**
+   * Sign in and wait until the app has actually left the Sign In screen — the
+   * one-liner every suite that only needs an authenticated session should use.
+   * Specs that assert *on* the sign-in behaviour itself (bad credentials, the
+   * password toggle) still drive `fillEmail`/`fillPassword`/`submitLogin`
+   * separately so they can inspect the screen mid-flow.
+   *
+   * The wait is a readiness gate, not a verification: without it the next
+   * `page.goto()` can race the post-login redirect and land back on /login.
+   *
+   * @param {string} username
+   * @param {string} password
+   */
+  async login(username, password) {
+    await this.fillEmail(username);
+    await this.fillPassword(password);
+    await this.submitLogin();
+    await this.page.waitForURL((url) => !url.pathname.endsWith('/login'));
   }
 
   /**

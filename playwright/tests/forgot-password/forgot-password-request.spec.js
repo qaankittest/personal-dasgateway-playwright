@@ -129,8 +129,8 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
     await forgotPassword.backToSignInLink.click();
 
     await expect(page).toHaveURL(ON_LOGIN);
-    await expect(login.username).toHaveValue('');
-    await expect(login.password).toHaveValue('');
+    await expect(login.emailInput).toHaveValue('');
+    await expect(login.passwordInput).toHaveValue('');
   });
 
   test('TC_FP_007 — a well-formed address advances to the OTP screen', async ({
