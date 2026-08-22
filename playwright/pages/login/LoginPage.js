@@ -7,7 +7,7 @@ export class LoginPage {
   constructor(page) {
     this.page = page;
     
-    // Locators
+    //  Locators
     this.pageHeading = page.getByRole('paragraph').filter({ hasText: 'Sign in to Payment Options' });
     this.emailInput = page.getByRole('textbox', { name: 'Email Address' });
     this.passwordInput = page.getByRole('textbox', { name: 'Password' });
