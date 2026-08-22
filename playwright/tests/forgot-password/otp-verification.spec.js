@@ -31,16 +31,19 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
     otpVerificationPage: otp,
   }) => {
     await otp.goto();
-    await expect(otp.verifyButton).toBeDisabled();
+
+    await expect(otp.verifyButton, 'disabled with no digits entered').toBeDisabled();
 
     await otp.focusFirstDigit();
-    for (const digit of RANDOM_OTP.slice(0, 5)) {
+    for (const [index, digit] of [...RANDOM_OTP.slice(0, 5)].entries()) {
       await otp.appendDigit(digit);
-      await expect(otp.verifyButton).toBeDisabled();
+
+      await expect(otp.verifyButton, `still disabled at ${index + 1} of 6 digits`).toBeDisabled();
     }
 
     await otp.appendDigit(RANDOM_OTP[5]);
-    await expect(otp.verifyButton).toBeEnabled();
+
+    await expect(otp.verifyButton, 'enabled once all six boxes are filled').toBeEnabled();
   });
 
   test('TC_FP_010 — each box takes one digit, auto-advances, and refuses letters', async ({
@@ -50,6 +53,7 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
 
     await test.step('a digit fills the box and moves focus on', async () => {
       await otp.typeIntoDigit(1, '1');
+
       await expect(otp.digit(1)).toHaveValue('1');
       await expect(otp.digit(2)).toBeFocused();
     });
@@ -58,16 +62,16 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
       // The box holds exactly one digit: a further keystroke on a filled box is
       // dropped, leaving the original value in place.
       await otp.typeIntoDigit(1, '9');
+
       await expect(otp.digit(1)).toHaveValue('1');
     });
 
     await test.step('letters and symbols are refused', async () => {
-      await otp.typeIntoDigit(3, 'a');
-      await expect(otp.digit(3)).toHaveValue('');
-      await otp.typeIntoDigit(3, '@');
-      await expect(otp.digit(3)).toHaveValue('');
-      await otp.typeIntoDigit(3, ' ');
-      await expect(otp.digit(3)).toHaveValue('');
+      for (const character of ['a', '@', ' ']) {
+        await otp.typeIntoDigit(3, character);
+
+        await expect(otp.digit(3), `"${character}" must not be accepted`).toHaveValue('');
+      }
     });
 
     await test.step('Backspace clears the current box, then walks back', async () => {
@@ -75,14 +79,17 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
       // digit 1 filled, and a filled box swallows further keystrokes.
       await otp.goto();
       await otp.enterOtp(RANDOM_OTP);
+
       await expect(otp.digit(6)).toHaveValue('6');
 
       await otp.pressBackspace();
-      await expect(otp.digit(6)).toHaveValue('');
+
+      await expect(otp.digit(6), 'a filled box is cleared in place').toHaveValue('');
       await expect(otp.digit(6)).toBeFocused();
 
       await otp.pressBackspace();
-      await expect(otp.digit(5)).toHaveValue('');
+
+      await expect(otp.digit(5), 'an empty box clears the one before it').toHaveValue('');
       await expect(otp.digit(5)).toBeFocused();
     });
   });
@@ -93,7 +100,7 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
   // Point #2 ("Confirm the configured maximum number of Resend OTP attempts and
   // the cool-down period"). Left as `fixme` rather than asserting the current
   // uncapped behaviour, which would lock in a defect as the expectation.
-  // Un-fix and fill in `RESEND_LIMIT` once the cap is confirmed and shipped.
+  // Un-fix and set `RESEND_LIMIT` once the cap is confirmed and shipped.
   test.fixme(
     'TC_FP_011 — Resend OTP is blocked once the attempt limit is reached',
     async ({ forgotPasswordPage: forgotPassword, otpVerificationPage: otp }) => {
@@ -101,14 +108,17 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
 
       await forgotPassword.goto();
       await forgotPassword.requestOtp(forgotPasswordEmail());
+
       await expect(otp.heading).toBeVisible();
 
       for (let attempt = 1; attempt <= RESEND_LIMIT; attempt += 1) {
-        const response = await otp.resendOtp();
-        expect(response.ok(), `resend attempt ${attempt} should be accepted`).toBeTruthy();
+        const accepted = await otp.resendOtp();
+
+        expect(accepted.ok(), `resend attempt ${attempt} should be accepted`).toBeTruthy();
       }
 
       const rejected = await otp.resendOtp();
+
       expect(rejected.ok(), 'the attempt past the limit should be rejected').toBeFalsy();
       await expect(otp.resendOtpButton).toBeDisabled();
     },
@@ -121,13 +131,17 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
   }) => {
     await test.step('reach the OTP card through the real flow', async () => {
       await forgotPassword.goto();
-      await forgotPassword.requestOtp(forgotPasswordEmail());
+      const response = await forgotPassword.requestOtp(forgotPasswordEmail());
+
+      expect(response.ok(), 'POST /auth/forgotPassword').toBeTruthy();
       await expect(otp.heading).toBeVisible();
     });
 
     await test.step('enter six digits and verify', async () => {
       await otp.enterOtp(RANDOM_OTP);
+
       await expect(otp.verifyButton).toBeEnabled();
+
       await otp.verify();
     });
 
@@ -141,9 +155,9 @@ test.describe('Forgot Password — OTP verification', { tag: ['@regression'] }, 
   });
 
   // TC_FP_020 verifies the delivered email's OTP, sender and branding. That
-  // needs a mailbox API (Mailinator/Mailosaur) this suite has no credentials
+  // needs a mailbox API (Mailinator / Mailosaur) this suite has no credentials
   // for, so it is skipped rather than faked. Wire `MAILINATOR_API_KEY` into
   // .env, fetch the inbox for the address `forgotPasswordEmail()` minted, and
-  // assert the 6-digit code and stated validity period.
+  // assert the six-digit code and the stated validity period.
   test.skip('TC_FP_020 — the verification email arrives with a six-digit code', async () => {});
 });

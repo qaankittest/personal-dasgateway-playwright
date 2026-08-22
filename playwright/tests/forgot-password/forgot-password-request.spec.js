@@ -12,6 +12,9 @@ import {
   forgotPasswordEmail,
 } from '../../data/forgot-password.js';
 
+const ON_FORGOT_PASSWORD = new RegExp(`${TEST_CONFIG.routes.forgotPassword}$`);
+const ON_LOGIN = new RegExp(`${TEST_CONFIG.routes.login}$`);
+
 test.describe('Forgot Password — request a verification code', { tag: ['@regression'] }, () => {
   test('TC_FP_001 — Forgot Password? link on Sign In opens the reset-request screen', async ({
     page,
@@ -22,7 +25,7 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
     });
 
     await test.step('the reset-request card is rendered', async () => {
-      await expect(page).toHaveURL(new RegExp(`${TEST_CONFIG.routes.forgotPassword}$`));
+      await expect(page).toHaveURL(ON_FORGOT_PASSWORD);
       await expect(forgotPassword.heading).toBeVisible();
       await expect(forgotPassword.emailInput).toBeVisible();
       await expect(forgotPassword.submitButton).toBeVisible();
@@ -63,7 +66,7 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
     await expect(forgotPassword.validationMessage).toHaveText(
       FORGOT_PASSWORD_MESSAGES.emailRequired,
     );
-    await expect(page).toHaveURL(new RegExp(`${TEST_CONFIG.routes.forgotPassword}$`));
+    await expect(page).toHaveURL(ON_FORGOT_PASSWORD);
     await expect(forgotPassword.emailInput).toBeVisible();
   });
 
@@ -81,7 +84,7 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
       await expect(forgotPassword.validationMessage).toHaveText(
         FORGOT_PASSWORD_MESSAGES.emailInvalid,
       );
-      await expect(page).toHaveURL(new RegExp(`${TEST_CONFIG.routes.forgotPassword}$`));
+      await expect(page).toHaveURL(ON_FORGOT_PASSWORD);
     });
   }
 
@@ -95,6 +98,7 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
     // typing and clearing shows nothing — verified against the live dev app.
     await test.step('arm validation with a blank submit', async () => {
       await forgotPassword.submit();
+
       await expect(forgotPassword.validationMessage).toHaveText(
         FORGOT_PASSWORD_MESSAGES.emailRequired,
       );
@@ -102,11 +106,13 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
 
     await test.step('a valid address clears the error', async () => {
       await forgotPassword.fillEmail('test.user@mailinator.com');
+
       await expect(forgotPassword.validationMessage).toBeHidden();
     });
 
     await test.step('clearing the field brings it back', async () => {
       await forgotPassword.clearEmail();
+
       await expect(forgotPassword.emailInput).toHaveValue('');
       await expect(forgotPassword.validationMessage).toHaveText(
         FORGOT_PASSWORD_MESSAGES.emailRequired,
@@ -122,7 +128,7 @@ test.describe('Forgot Password — request a verification code', { tag: ['@regre
     await forgotPassword.goto();
     await forgotPassword.backToSignInLink.click();
 
-    await expect(page).toHaveURL(new RegExp(`${TEST_CONFIG.routes.login}$`));
+    await expect(page).toHaveURL(ON_LOGIN);
     await expect(login.username).toHaveValue('');
     await expect(login.password).toHaveValue('');
   });
