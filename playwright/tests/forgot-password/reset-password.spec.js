@@ -300,7 +300,7 @@ test.describe('Forgot Password — reset the password', { tag: ['@regression'] }
       await reset.backToSignIn();
 
       await expect(page).toHaveURL(ON_LOGIN);
-      await expect(login.username).toBeVisible();
+      await expect(login.emailInput).toBeVisible();
     });
 
     await test.step('returning to the wizard URL restarts at the OTP step', async () => {
