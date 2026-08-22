@@ -10,6 +10,9 @@
 import { test as base, expect } from '@playwright/test';
 
 import { LoginPage } from '../pages/auth/LoginPage.js';
+import { ForgotPasswordPage } from '../pages/forgot-password/ForgotPasswordPage.js';
+import { OtpVerificationPage } from '../pages/forgot-password/OtpVerificationPage.js';
+import { ResetPasswordPage } from '../pages/forgot-password/ResetPasswordPage.js';
 import { HashCardPage } from '../pages/hashcard/HashCardPage.js';
 import { MerchantsPage } from '../pages/merchants/MerchantsPage.js';
 import { MerchantDetailsPage } from '../pages/merchants/MerchantDetailsPage.js';
@@ -29,6 +32,9 @@ import { TransactionDrawerPage } from '../pages/transactions/TransactionDrawerPa
 /**
  * @typedef {object} Poms
  * @property {LoginPage} loginPage
+ * @property {ForgotPasswordPage} forgotPasswordPage
+ * @property {OtpVerificationPage} otpVerificationPage
+ * @property {ResetPasswordPage} resetPasswordPage
  * @property {HashCardPage} hashCardPage
  * @property {MerchantsPage} merchantsPage
  * @property {MerchantDetailsPage} merchantDetailsPage
@@ -51,6 +57,17 @@ export const test = base.extend({
   // ---- auth -------------------------------------------------------------
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
+  },
+
+  // ---- forgot password --------------------------------------------------
+  forgotPasswordPage: async ({ page }, use) => {
+    await use(new ForgotPasswordPage(page));
+  },
+  otpVerificationPage: async ({ page }, use) => {
+    await use(new OtpVerificationPage(page));
+  },
+  resetPasswordPage: async ({ page }, use) => {
+    await use(new ResetPasswordPage(page));
   },
 
   // ---- hashcard ---------------------------------------------------------

@@ -20,11 +20,16 @@ playwright/
 │
 ├── data/
 │   ├── uniq.js                   # runId + unique suffix / token / name / email — worker-safe
-│   └── builders.js               # pure record builders (guestEmail, buildGuestAccount)
+│   ├── builders.js               # pure record builders (guestEmail, buildGuestAccount)
+│   └── forgot-password.js        # reset-flow fixtures + the app's verbatim validation copy
 │
 ├── pages/
 │   ├── auth/
 │   │   └── LoginPage.js
+│   ├── forgot-password/                 # the three cards of the password-reset wizard
+│   │   ├── ForgotPasswordPage.js        # /forgot-password — request a code
+│   │   ├── OtpVerificationPage.js       # /reset-password — the 6-box OTP card
+│   │   └── ResetPasswordPage.js         # /reset-password — the new-password card
 │   ├── merchants/                # merchant list / details / drawer POMs
 │   ├── transactions/
 │   │   ├── TransactionsPage.js          # table + infinite scroll + row navigation
@@ -49,6 +54,10 @@ playwright/
 │
 ├── tests/
 │   ├── auth/login.spec.js
+│   ├── forgot-password/                 # TC_FP_001–024 from the functional test-case doc
+│   │   ├── forgot-password-request.spec.js  # email step: navigation, copy, validation
+│   │   ├── otp-verification.spec.js         # OTP card: 6 boxes, VERIFY gating, resend
+│   │   └── reset-password.spec.js           # password card: policy, masking, wrong OTP
 │   ├── merchants/merchants-e2e.spec.js
 │   ├── transactions/             # list smoke, action buttons, ref-id quick filter
 │   ├── finance/

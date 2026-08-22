@@ -78,9 +78,10 @@ playwright/
 │   └── products/            # JSON fixtures + load.js + types.js
 ├── data/
 │   ├── uniq.js              # runId + uniqueSuffix/Token/Name/Email/Digits — worker-safe
-│   └── builders.js          # pure record builders (guestEmail, buildGuestAccount)
+│   ├── builders.js          # pure record builders (guestEmail, buildGuestAccount)
+│   └── forgot-password.js   # reset-flow fixtures + the app's verbatim validation copy
 ├── pages/                   # POMs by domain
-│   ├── auth/  merchants/  transactions/  onboarding/  finance/  products/  hashcard/ login
+│   ├── auth/  forgot-password/  merchants/  transactions/  onboarding/  finance/  products/  hashcard/  login
 ├── utils/
 │   ├── scroll.js            # scrollUntilRowCount (infinite scroll + idle detect)
 │   ├── retry.js             # backoff retry helper
@@ -431,6 +432,7 @@ Ask the app team to add these — each one removes an `.or()` fallback chain.
 | Area | testids |
 |---|---|
 | Login | `login-username`, `login-password`, `login-submit`, `login-error` |
+| Forgot password | `forgot-password-email`, `forgot-password-submit`, `forgot-password-error`, `otp-digit-1`…`otp-digit-6`, `otp-verify`, `otp-resend`, `reset-new-password`, `reset-confirm-password`, `reset-submit`, `reset-error` |
 | Data table | `transactions-table` / `statements-table`, `transactions-row` / `statements-row`, `skeleton-row`, `transactions-row-ref-link` |
 | Txn details actions | `action-refund/capture/void/dispute/editStatus` |
 | Txn drawer | `transaction-drawer`, `drawer-action-refund/capture/void/dispute/editStatus` |
