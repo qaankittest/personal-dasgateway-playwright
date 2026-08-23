@@ -63,4 +63,19 @@
  *  @property {Record<string, any>} messages
  */
 
+/** Shapes for `hong-kong.json` — the same wizard driven with Hong Kong data.
+ *
+ *  `invalid.unenforcedLengths` holds the two numbers the Hong Kong test-case
+ *  document expects to be rejected for length (4 and 12 digits against an
+ *  8-digit rule). The dev build accepts both, and the document's own Open Point
+ *  #2 leaves the rule unconfirmed, so nothing asserts them — they are kept here
+ *  so the case can be written the moment the rule is settled.
+ *
+ * @typedef {object} HongKongRegistrationFixture
+ * @property {MerchantAccount} account
+ * @property {{country: string, phoneCode: string, phoneDigits: number}} market
+ * @property {{phones: {alphabetic: string, symbols: string}, unenforcedLengths: {tooShort: string, tooLong: string}, emails: string[]}} invalid
+ * @property {{businessLocationField: string, hongKongDocument: string, japanOnlyField: string}} onboarding
+ */
+
 export {};

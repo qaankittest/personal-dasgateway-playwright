@@ -1,0 +1,34 @@
+{
+  "account": {
+    "firstName": "Ankit",
+    "lastName": "Tester",
+    "country": "Hong Kong",
+    "phoneCode": "+852",
+    "phone": "91234567",
+    "email": "po-e2e-merchant-hk-{{unique}}@mailinator.com"
+  },
+
+  "market": {
+    "country": "Hong Kong",
+    "phoneCode": "+852",
+    "phoneDigits": 8
+  },
+
+  "invalid": {
+    "phones": {
+      "alphabetic": "abcdefgh",
+      "symbols": "@#$%^"
+    },
+    "unenforcedLengths": {
+      "tooShort": "9123",
+      "tooLong": "912345678901"
+    },
+    "emails": ["testankithk@gmail", "test@@gmail.com", "test ankit@gmail.com"]
+  },
+
+  "onboarding": {
+    "businessLocationField": "businessLocation",
+    "hongKongDocument": "Company Registration Document / Certificate of Incorporation / Share Register / Proof of Address",
+    "japanOnlyField": "Postcode"
+  }
+}
