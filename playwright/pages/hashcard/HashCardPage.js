@@ -143,8 +143,14 @@ export class HashCardPage {
    * `Active`/`Inactive` come from two `take=1` probe calls that carry the
    * *currently applied* filter — so these are counts within the active filter
    * context, not of the whole table. Call it on an unfiltered page to get the
-   * data-set totals. Returns null while a tile still shows its em-dash
-   * placeholder (probe in flight).
+   * data-set totals.
+   *
+   * The tile paints its label first and fills the number in when its probe
+   * lands, so a single `innerText()` read can catch the em-dash placeholder and
+   * return `NaN`. This waits for the digits to arrive before reading — without
+   * it the caller sees a spurious `null` and branches on "count unknown" purely
+   * because it asked too early. `null` is still returned if the placeholder
+   * outlives the wait, which is a genuine "this tile never resolved".
    *
    * @param {'Hash Cards' | 'Active' | 'Inactive'} label
    * @returns {Promise<number | null>}
@@ -154,6 +160,16 @@ export class HashCardPage {
       .locator('div')
       .filter({ hasText: new RegExp(`^${label}\\s*[\\d—-]*$`) })
       .first();
+
+    // A wait, not a verification: the spec still states what the count must be.
+    // The timeout is swallowed deliberately — an unresolved tile is a value
+    // this function reports (`null`), not a failure it should raise on the
+    // caller's behalf.
+    await tile
+      .filter({ hasText: new RegExp(`^${label}\\s*\\d+$`) })
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .catch(() => {});
+
     const raw = (await tile.innerText()).replace(label, '').trim();
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;

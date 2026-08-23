@@ -31,6 +31,9 @@ import { VERIFY_OTP_ENDPOINT } from '../../pages/merchant-registration/MerchantO
 
 const { copy, passwords, messages } = loadMerchantRegistration();
 
+/** @param {string} description */
+const defect = (description) => ({ annotation: { type: 'defect', description } });
+
 const HAS_PASSWORD = !!TEST_CONFIG.credentials.password;
 const ON_ONBOARDING = /\/onboarding\?step=business/;
 
@@ -51,6 +54,15 @@ async function openPasswordStep(account, otp, setPassword) {
     await account.fillAccount(merchant);
 
     const requested = await account.submitAndWaitForVerifyEmail();
+
+    // The dev sign-up endpoint throttles: once a run has registered a handful of
+    // merchants the rest of the window answers 429. That is an environment
+    // limit, not a product defect and not a bug in this test — so a throttled
+    // run reports as skipped-with-a-reason rather than as a red build.
+    test.skip(
+      requested.status() === 429,
+      'POST /onboarding/verify-email is rate-limited right now — rerun once the window clears',
+    );
     expect(
       requested.ok(),
       `POST ${VERIFY_EMAIL_ENDPOINT} answered ${requested.status()} — a 429 here means the run tripped the rate limit`,
@@ -190,6 +202,9 @@ test.describe(
     // submit instead, which TC_MA_026b covers.
     test.fixme(
       'TC_MA_026 — CREATE ACCOUNT stays disabled until both fields and consent are set',
+      defect(
+        'CREATE ACCOUNT is never disabled — it is clickable with both fields blank and consent unticked.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
         const password = newAccountPassword();
@@ -214,6 +229,9 @@ test.describe(
     // a first submit it never appears.
     test.fixme(
       'TC_MA_026c — the unticked consent box explains itself',
+      defect(
+        'With consent unticked the submit is swallowed in silence; the message exists but never surfaces on a first submit.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
 
@@ -230,6 +248,9 @@ test.describe(
     // appears. Same for TC_MA_028 and TC_MA_029.
     test.fixme(
       'TC_MA_027 — a password under 14 characters says it is too short',
+      defect(
+        'Every rejected password reports the same generic required message, whatever the fault; the documented wording never appears.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
 
@@ -243,6 +264,9 @@ test.describe(
 
     test.fixme(
       'TC_MA_028 — a long-enough password still needs every character class',
+      defect(
+        'Every rejected password reports the same generic required message; the complexity wording never appears.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
 
@@ -256,6 +280,9 @@ test.describe(
 
     test.fixme(
       'TC_MA_029 — a confirm password that differs says the two must match',
+      defect(
+        'Every rejected password reports the same generic required message; the mismatch wording never appears.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
 
@@ -272,6 +299,9 @@ test.describe(
     // with them.
     test.fixme(
       'TC_MA_030b — each consent link opens its document in a new tab',
+      defect(
+        'Neither consent link carries target=_blank, so both navigate in the same tab and discard the half-finished registration.',
+      ),
       async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
         await openPasswordStep(account, otp, setPassword);
 
