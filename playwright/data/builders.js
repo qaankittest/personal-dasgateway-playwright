@@ -19,7 +19,7 @@ export function guestEmail() {
 /**
  * A complete, valid GUEST sign-up account.
  *
- * The phone number is a fixed valid value rather than a generated one: the
+ * The phone number is a fixed valid value rather than a generated one: the 
  * sign-up form validates it against a country format, and a random digit
  * string fails that check for reasons unrelated to the test. The email is the
  * field the backend actually enforces uniqueness on, and it is unique per call.
