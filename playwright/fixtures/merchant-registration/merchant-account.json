@@ -1,0 +1,132 @@
+{
+  "account": {
+    "firstName": "Ankit",
+    "lastName": "Tester",
+    "country": "Japan",
+    "phoneCode": "+81",
+    "phone": "987654321",
+    "email": "po-e2e-merchant-{{unique}}@mailinator.com"
+  },
+
+  "countries": [
+    { "name": "Hong Kong", "phoneCode": "+852" },
+    { "name": "Japan", "phoneCode": "+81" }
+  ],
+
+  "passwords": {
+    "short": "Test12@#",
+    "weakComplexity": "fghjhgfdsafghj",
+    "mismatchConfirm": "fghjhgfds"
+  },
+
+  "otp": {
+    "wrong": "9999",
+    "partial": ["1", "12", "123"]
+  },
+
+  "invalid": {
+    "emails": ["testankit@gmail", "test@@gmail.com", "test ankit@gmail.com", "plainstring", "@gmail.com"],
+    "phones": {
+      "alphabetic": "abcdefghi",
+      "symbols": "@#$%^",
+      "tooShort": "12",
+      "tooLong": "9876543210987654"
+    },
+    "names": {
+      "numeric": "12345",
+      "symbols": "@#$%",
+      "tooLong": "AnkitTesterAnkitTesterAnkitTesterAnkitTesterAnkitTesterAnkitTesterAnkitTester",
+      "padded": "  Ankit  "
+    }
+  },
+
+  "copy": {
+    "entry": {
+      "heading": "Let's Begin Your Journey",
+      "subText": "Tell us how you wish to connect with Payment Options",
+      "merchantCard": "Register as a Merchant",
+      "partnerCard": "Register as a Partner",
+      "haveAccount": "Already have an account?",
+      "signInLink": "Sign in here",
+      "language": "English (UK)"
+    },
+    "account": {
+      "heading": "Create Your Merchant Account",
+      "highlight": "Merchant Account",
+      "submit": "Click to Verify Email ID",
+      "backToStart": "Back to Start",
+      "placeholders": {
+        "firstName": "Enter your First Name *",
+        "lastName": "Enter your Last Name *",
+        "phone": "Enter your Phone Number *",
+        "email": "Enter your Email Address *"
+      }
+    },
+    "otp": {
+      "heading": "Enter OTP to verify your account",
+      "instruction": "Please enter the verification code sent to",
+      "verify": "Verify",
+      "resendPrompt": "Didn't receive a code?",
+      "resend": "Resend OTP",
+      "boxCount": 4
+    },
+    "password": {
+      "heading": "You're on the final step of registration!",
+      "subText": "Set your account's password.",
+      "requirementsToggle": "Password Requirements",
+      "requirements": [
+        "Passwords must be at least 14 characters long.",
+        "Passwords must contain at least:",
+        "One lowercase letter",
+        "One uppercase letter",
+        "One number"
+      ],
+      "consent": "I agree with the Terms and Conditions and Privacy Policy",
+      "termsLink": "Terms and Conditions",
+      "privacyLink": "Privacy Policy",
+      "submit": "Create Account",
+      "placeholders": {
+        "password": "Create Password *",
+        "confirmPassword": "Confirm New Password *"
+      }
+    },
+    "welcome": {
+      "heading": "WELCOME TO PAYMENT OPTIONS",
+      "subHeading": "We will need the following to get you started",
+      "cards": [
+        {
+          "title": "Business Information",
+          "body": "Key information about your business to direct you towards the correct setup."
+        },
+        {
+          "title": "Stakeholder Information",
+          "body": "Details of all key individuals and entities associated with your business."
+        },
+        {
+          "title": "Payment or Settlement Information",
+          "body": "Your bank account details for processing settlements and pay outs."
+        }
+      ],
+      "continue": "CONTINUE",
+      "instruction": "Please fill in the information under each section below.",
+      "instructionBody": "you can always continue from where you left off",
+      "startNow": "START NOW",
+      "closeBanner": "Close welcome banner",
+      "businessSection": "Business Details"
+    }
+  },
+
+  "messages": {
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "phoneRequired": "Phone number is required",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "termsRequired": "You must accept the Terms and Conditions",
+    "documented": {
+      "passwordTooShort": "Password is too short - should be 14 characters minimum",
+      "passwordComplexity": "Your password must include at least one number, one special character, one uppercase letter, and one lowercase letter.",
+      "passwordMismatch": "Passwords must match"
+    }
+  }
+}
