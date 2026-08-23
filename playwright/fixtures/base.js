@@ -14,6 +14,11 @@ import { ForgotPasswordPage } from '../pages/forgot-password/ForgotPasswordPage.
 import { OtpVerificationPage } from '../pages/forgot-password/OtpVerificationPage.js';
 import { ResetPasswordPage } from '../pages/forgot-password/ResetPasswordPage.js';
 import { HashCardPage } from '../pages/hashcard/HashCardPage.js';
+import { AccountTypePage } from '../pages/merchant-registration/AccountTypePage.js';
+import { MerchantAccountPage } from '../pages/merchant-registration/MerchantAccountPage.js';
+import { MerchantOtpPage } from '../pages/merchant-registration/MerchantOtpPage.js';
+import { SetPasswordPage } from '../pages/merchant-registration/SetPasswordPage.js';
+import { OnboardingWelcomePage } from '../pages/merchant-registration/OnboardingWelcomePage.js';
 
 /**
  * @typedef {object} Poms
@@ -22,6 +27,11 @@ import { HashCardPage } from '../pages/hashcard/HashCardPage.js';
  * @property {OtpVerificationPage} otpVerificationPage
  * @property {ResetPasswordPage} resetPasswordPage
  * @property {HashCardPage} hashCardPage
+ * @property {AccountTypePage} accountTypePage
+ * @property {MerchantAccountPage} merchantAccountPage
+ * @property {MerchantOtpPage} merchantOtpPage
+ * @property {SetPasswordPage} setPasswordPage
+ * @property {OnboardingWelcomePage} onboardingWelcomePage
  */
 
 /** @type {import('@playwright/test').TestType<Poms & import('@playwright/test').PlaywrightTestArgs & import('@playwright/test').PlaywrightTestOptions, import('@playwright/test').PlaywrightWorkerArgs & import('@playwright/test').PlaywrightWorkerOptions>} */
@@ -45,6 +55,23 @@ export const test = base.extend({
   // ---- hashcard ---------------------------------------------------------
   hashCardPage: async ({ page }, use) => {
     await use(new HashCardPage(page));
+  },
+
+  // ---- merchant registration --------------------------------------------
+  accountTypePage: async ({ page }, use) => {
+    await use(new AccountTypePage(page));
+  },
+  merchantAccountPage: async ({ page }, use) => {
+    await use(new MerchantAccountPage(page));
+  },
+  merchantOtpPage: async ({ page }, use) => {
+    await use(new MerchantOtpPage(page));
+  },
+  setPasswordPage: async ({ page }, use) => {
+    await use(new SetPasswordPage(page));
+  },
+  onboardingWelcomePage: async ({ page }, use) => {
+    await use(new OnboardingWelcomePage(page));
   },
 
   // ---- diagnostics ------------------------------------------------------
