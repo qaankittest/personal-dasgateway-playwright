@@ -47,6 +47,16 @@ export class OnboardingWelcomePage {
     this.businessDetailsSection = page.getByText(/^business details$/i).first();
     this.applicationRefId = page.getByText(/application ref id/i);
     this.companyTypeField = page.getByText('Company Type', { exact: false }).first();
+
+    // The market the application was registered under, carried through from the
+    // Country chosen on the account form. A DasForm Select, so `#fieldName`
+    // (SKILL §8) — the same id the registration form uses for its own Country.
+    this.businessLocationField = page.locator('#businessLocation');
+
+    // Address block fields whose presence is market-dependent — Japan asks for
+    // a Postcode, Hong Kong does not.
+    this.postcodeField = page.getByText(/^postcode/i).first();
+    this.cityField = page.getByText(/^city/i).first();
   }
 
   // ---- dynamic locators -------------------------------------------------
@@ -61,6 +71,19 @@ export class OnboardingWelcomePage {
    * @returns {import('@playwright/test').Locator} */
   cardBody(body) {
     return this.dialog.getByText(new RegExp(`^${escapeRegExp(body)}$`, 'i'));
+  }
+
+  /**
+   * A labelled field in the onboarding form behind the banner. The upload
+   * fields carry no `id`, and their labels are the only stable hook — which is
+   * what makes them usable as the market fingerprint: Hong Kong asks for one
+   * combined registration document where Japan asks for two separate ones.
+   *
+   * @param {string} label
+   * @returns {import('@playwright/test').Locator}
+   */
+  formField(label) {
+    return this.page.getByText(new RegExp(escapeRegExp(label), 'i')).first();
   }
 
   // ---- navigation -------------------------------------------------------

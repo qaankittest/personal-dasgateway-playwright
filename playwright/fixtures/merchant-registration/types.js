@@ -10,8 +10,10 @@
  *     copy change fails in one obvious place instead of across a dozen specs.
  *
  * `messages.documented` holds the wording the test-case document specifies but
- * the dev build does not yet render; the specs that assert it are parked with
- * `test.fixme` and cite the observed string instead.
+ * the dev build does not yet render, and `invalid.names` the name-field data the
+ * app does not police. Nothing asserts either today — the cases that did were
+ * removed on 2026-08-24 (each spec header lists which, and why). Both are kept
+ * here so the expected values are to hand when those cases are written back.
  *
  * No runtime code — JSDoc typedefs only, so editors still complete the fixture
  * in plain JavaScript.
@@ -59,6 +61,21 @@
  *  @property {InvalidData} invalid
  *  @property {Record<string, any>} copy
  *  @property {Record<string, any>} messages
+ */
+
+/** Shapes for `hong-kong.json` — the same wizard driven with Hong Kong data.
+ *
+ *  `invalid.unenforcedLengths` holds the two numbers the Hong Kong test-case
+ *  document expects to be rejected for length (4 and 12 digits against an
+ *  8-digit rule). The dev build accepts both, and the document's own Open Point
+ *  #2 leaves the rule unconfirmed, so nothing asserts them — they are kept here
+ *  so the case can be written the moment the rule is settled.
+ *
+ * @typedef {object} HongKongRegistrationFixture
+ * @property {MerchantAccount} account
+ * @property {{country: string, phoneCode: string, phoneDigits: number}} market
+ * @property {{phones: {alphabetic: string, symbols: string}, unenforcedLengths: {tooShort: string, tooLong: string}, emails: string[]}} invalid
+ * @property {{businessLocationField: string, hongKongDocument: string, japanOnlyField: string}} onboarding
  */
 
 export {};

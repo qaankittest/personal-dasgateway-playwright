@@ -20,8 +20,10 @@ test.describe('Login Page Tests', () => {
   test('should show error for incorrect credentials', async ({ page }) => {
     // A fresh address every run — hammering one fixed account trips the
     // "locked due to multiple failed login attempts" rule, which then swaps the
-    // toast text and fails this test for 60 minutes.
-    await loginPage.fillEmail('hfjrhbbbb@gmail.com');
+    // toast text and fails this test for 60 minutes. (This is what the comment
+    // always claimed; the address was hardcoded until 2026-08-24, and a day of
+    // repeated runs duly locked it out.)
+    await loginPage.fillEmail(uniqueEmail('po-e2e-nosuchuser'));
     await loginPage.fillPassword('Test12345678999@#');
     await loginPage.submitLogin();
 

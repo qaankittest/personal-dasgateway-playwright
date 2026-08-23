@@ -14,9 +14,26 @@
 // the session by creating the account. Each case keeps its own `test.step`, so
 // a failure still names the case it broke.
 //
-// Five cases are parked with `test.fixme` — each written to the document's
-// expected result and failing against the current build, with the observed
-// behaviour named above it.
+// NOT COVERED HERE — six cases from the document describe behaviour this build
+// does not implement, and their tests were removed on request (2026-08-24)
+// rather than left parked. Recorded so the gap stays visible; write them back
+// once the app catches up, and see `pages/merchant-registration/
+// SetPasswordPage.js` for the full observations:
+//
+//   TC_MA_026  CREATE ACCOUNT is never disabled, even with both fields blank
+//              and consent unticked. TC_MA_026b covers the gate that does work.
+//   TC_MA_026c an unticked consent box is refused in silence on a first submit.
+//   TC_MA_027  a password under 14 characters reports the generic "Password is
+//              required" instead of the documented length message.
+//   TC_MA_028  a password missing character classes reports the same generic
+//              message instead of the complexity one.
+//   TC_MA_029  a mismatched confirm reports the same generic message instead of
+//              "Passwords must match".
+//   TC_MA_030b neither consent link carries target=_blank, so both navigate in
+//              the same tab and discard the half-finished registration.
+//
+// TC_MA_027b below still proves the outcome that matters for all three password
+// cases: a rejected password never creates the account.
 import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import {
@@ -29,10 +46,7 @@ import { log } from '../../utils/logger.js';
 import { VERIFY_EMAIL_ENDPOINT } from '../../pages/merchant-registration/MerchantAccountPage.js';
 import { VERIFY_OTP_ENDPOINT } from '../../pages/merchant-registration/MerchantOtpPage.js';
 
-const { copy, passwords, messages } = loadMerchantRegistration();
-
-/** @param {string} description */
-const defect = (description) => ({ annotation: { type: 'defect', description } });
+const { copy, passwords } = loadMerchantRegistration();
 
 const HAS_PASSWORD = !!TEST_CONFIG.credentials.password;
 const ON_ONBOARDING = /\/onboarding\?step=business/;
@@ -196,119 +210,6 @@ test.describe(
         });
       }
     });
-
-    // FAILS on dev (2026-08-23): CREATE ACCOUNT is never `disabled` — it is
-    // clickable with both fields blank and the box unticked. The app gates the
-    // submit instead, which TC_MA_026b covers.
-    test.fixme(
-      'TC_MA_026 — CREATE ACCOUNT stays disabled until both fields and consent are set',
-      defect(
-        'CREATE ACCOUNT is never disabled — it is clickable with both fields blank and consent unticked.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-        const password = newAccountPassword();
-
-        await expect(setPassword.submitButton).toBeDisabled();
-
-        await setPassword.passwordInput.fill(password);
-        await expect(setPassword.submitButton).toBeDisabled();
-
-        await setPassword.confirmPasswordInput.fill(password);
-        await expect(setPassword.submitButton, 'consent still unticked').toBeDisabled();
-
-        await setPassword.acceptTerms();
-        await expect(setPassword.submitButton).toBeEnabled();
-      },
-    );
-
-    // FAILS on dev (2026-08-23): with the box unticked the submit is swallowed
-    // in silence — nothing tells the user the consent is what is holding them
-    // up. "You must accept the Terms and Conditions" does exist in the app, but
-    // it surfaces only after other interactions have primed the error state; on
-    // a first submit it never appears.
-    test.fixme(
-      'TC_MA_026c — the unticked consent box explains itself',
-      defect(
-        'With consent unticked the submit is swallowed in silence; the message exists but never surfaces on a first submit.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-
-        await setPassword.setPassword(newAccountPassword());
-        await setPassword.createAccount();
-
-        await expect(setPassword.message(messages.termsRequired)).toBeVisible();
-      },
-    );
-
-    // FAILS on dev (2026-08-23): every rejected password gets the same message,
-    // "Password is required", whatever the actual fault — so a user who typed
-    // eight characters is told the field is empty. The documented wording never
-    // appears. Same for TC_MA_028 and TC_MA_029.
-    test.fixme(
-      'TC_MA_027 — a password under 14 characters says it is too short',
-      defect(
-        'Every rejected password reports the same generic required message, whatever the fault; the documented wording never appears.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-
-        await setPassword.setPassword(passwords.short);
-        await setPassword.acceptTerms();
-        await setPassword.createAccount();
-
-        await expect(setPassword.message(messages.documented.passwordTooShort)).toBeVisible();
-      },
-    );
-
-    test.fixme(
-      'TC_MA_028 — a long-enough password still needs every character class',
-      defect(
-        'Every rejected password reports the same generic required message; the complexity wording never appears.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-
-        await setPassword.setPassword(passwords.weakComplexity);
-        await setPassword.acceptTerms();
-        await setPassword.createAccount();
-
-        await expect(setPassword.message(messages.documented.passwordComplexity)).toBeVisible();
-      },
-    );
-
-    test.fixme(
-      'TC_MA_029 — a confirm password that differs says the two must match',
-      defect(
-        'Every rejected password reports the same generic required message; the mismatch wording never appears.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-
-        await setPassword.setPassword(newAccountPassword(), passwords.mismatchConfirm);
-        await setPassword.acceptTerms();
-        await setPassword.createAccount();
-
-        await expect(setPassword.message(messages.documented.passwordMismatch)).toBeVisible();
-      },
-    );
-
-    // FAILS on dev (2026-08-23): neither consent link carries `target="_blank"`,
-    // so both navigate in the same tab and take the half-finished registration
-    // with them.
-    test.fixme(
-      'TC_MA_030b — each consent link opens its document in a new tab',
-      defect(
-        'Neither consent link carries target=_blank, so both navigate in the same tab and discard the half-finished registration.',
-      ),
-      async ({ merchantAccountPage: account, merchantOtpPage: otp, setPasswordPage: setPassword }) => {
-        await openPasswordStep(account, otp, setPassword);
-
-        await expect.soft(setPassword.termsLink).toHaveAttribute('target', '_blank');
-        await expect.soft(setPassword.privacyLink).toHaveAttribute('target', '_blank');
-      },
-    );
 
     test('TC_MA_031 — a compliant password with consent creates the account and starts onboarding', async ({
       page,

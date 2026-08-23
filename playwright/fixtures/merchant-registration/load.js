@@ -47,6 +47,28 @@ export function buildMerchantAccount(overrides = {}) {
   };
 }
 
+/** The Hong Kong market fixture — the same wizard, driven with HK data.
+ *  @returns {import('./types.js').HongKongRegistrationFixture} */
+export function loadHongKongRegistration() {
+  return readJson('./hong-kong.json');
+}
+
+/**
+ * A ready-to-submit Hong Kong account, with the same `{{unique}}` email
+ * substitution as `buildMerchantAccount`.
+ *
+ * @param {Partial<import('./types.js').MerchantAccount>} [overrides]
+ * @returns {import('./types.js').MerchantAccount}
+ */
+export function buildHongKongAccount(overrides = {}) {
+  const { account } = loadHongKongRegistration();
+  return {
+    ...account,
+    email: account.email.replace(/\{\{unique\}\}/g, uniqueToken().toLowerCase()),
+    ...overrides,
+  };
+}
+
 /** The password the wizard sets on the freshly created account. Env-supplied,
  *  never committed. @returns {string} */
 export function newAccountPassword() {
