@@ -1,6 +1,13 @@
 // Forgot Password — step 3, the new-password card at /reset-password.
-// Covers TC_FP_013 – TC_FP_019 and TC_FP_021 – TC_FP_024 of
+// Covers TC_FP_013 – TC_FP_019 and TC_FP_022 – TC_FP_024 of
 // Forgot_Password_Functional_Test_Cases.pdf.
+//
+// NOT COVERED HERE — TC_FP_021 ("the password fields refuse to be copied out")
+// was removed on request (2026-08-24). The dev app installs no copy, cut or
+// contextmenu guard, so Ctrl+C works there like any other input, and the
+// document's own Open Point #4 flags the rule as unconfirmed. Decide the rule
+// first: if copy must be blocked this is a defect to raise; if it is allowed,
+// write the case back with the assertion inverted.
 //
 // The password card is not reachable by URL — a cold hit on /reset-password
 // always renders the OTP card — so every test opens it by walking forward from
@@ -204,24 +211,6 @@ test.describe('Forgot Password — reset the password', { tag: ['@regression'] }
 
     await expect(reset.message(FORGOT_PASSWORD_MESSAGES.passwordsMustMatch)).toBeVisible();
     await expect(reset.heading).toBeVisible();
-  });
-
-  // TC_FP_021. The PDF expects copy to be blocked on the password fields; the
-  // dev app installs no `copy`, `cut` or `contextmenu` guard, so Ctrl+C works
-  // there like any other input (verified 2026-08-22). The PDF's own Open Point
-  // #4 flags this rule as unconfirmed, so the case stays `fixme` rather than
-  // asserting today's behaviour as correct. Un-fix once the rule is decided —
-  // if copy is meant to be allowed, invert the assertion instead.
-  test.fixme('TC_FP_021 — the password fields refuse to be copied out', async ({
-    otpVerificationPage: otp,
-    resetPasswordPage: reset,
-  }) => {
-    await openResetCard(otp, reset);
-    await reset.fillNewPassword(VALID_PASSWORD);
-    await reset.copyNewPassword();
-    await reset.pasteIntoConfirmPassword();
-
-    await expect(reset.confirmPasswordInput).toHaveValue('');
   });
 
   test('TC_FP_022 — a pasted password lands in full and stays masked', async ({

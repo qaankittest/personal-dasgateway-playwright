@@ -6,12 +6,25 @@
 // posts /onboarding/verify-email and starts a registration against a unique
 // mailinator address. Every other case stays client-side.
 //
-// Six cases in this file are parked with `test.fixme`. Each one is written to
-// the behaviour the test-case document specifies and fails against the current
-// dev build; the comment above each states what the app does instead, and the
-// same statement rides along as a `defect` annotation so it reaches the report
-// rather than living only in this source. They are bug reports in executable
-// form, not skipped work — unpark them when the app catches up.
+// NOT COVERED HERE — six cases from the document describe behaviour this build
+// does not implement, and their tests were removed on request (2026-08-24)
+// rather than left parked. Recorded so the gap stays visible; write them back
+// once the app catches up, and see `pages/merchant-registration/
+// MerchantAccountPage.js` for the full observations:
+//
+//   TC_MA_009  the Country Code does not follow the Country — picking Hong Kong
+//              leaves +81; the two selects are independent.
+//   TC_MA_010  CLICK TO VERIFY EMAIL ID is never disabled, even with every
+//              field blank.
+//   TC_MA_011  a blank submit renders no message; the "… is required" strings
+//              appear only on a later submit and then persist once the field
+//              holds a value.
+//   TC_MA_012b a malformed address is refused (TC_MA_012 proves it) but no
+//              message ever renders.
+//   TC_MA_013b Phone Number stores letters and symbols verbatim, and the
+//              rejection that follows carries no message.
+//   TC_MA_014  First/Last Name accept digits and symbols, have no maximum
+//              length, and do not trim surrounding spaces.
 import { test, expect } from '../../fixtures/base.js';
 import { TEST_CONFIG } from '../../fixtures/test-config.js';
 import {
@@ -20,13 +33,10 @@ import {
 } from '../../fixtures/merchant-registration/load.js';
 import { log } from '../../utils/logger.js';
 
-const { copy, countries, invalid, messages } = loadMerchantRegistration();
+const { copy, countries, invalid } = loadMerchantRegistration();
 
 const ON_ACCOUNT_TYPE = new RegExp(`${TEST_CONFIG.routes.chooseAccountType}$`);
 const ON_SIGN_UP = new RegExp(`${TEST_CONFIG.routes.signUp}$`);
-
-/** @param {string} description */
-const defect = (description) => ({ annotation: { type: 'defect', description } });
 
 test.describe('Merchant registration — the account form', { tag: ['@regression'] }, () => {
   test('TC_MA_006 — every field is present, in order, with its placeholder', async ({
@@ -123,76 +133,6 @@ test.describe('Merchant registration — the account form', { tag: ['@regression
     await expect(account.phoneCodeSelect).toHaveText('+852');
   });
 
-  // FAILS on dev (2026-08-23): the Country Code field does not follow the
-  // Country. Selecting Hong Kong leaves the code at +81, and switching back to
-  // Japan leaves whatever was there. The two selects are independent.
-  test.fixme(
-    'TC_MA_009 — the country code follows the selected country',
-    defect('Selecting Hong Kong leaves the Country Code at +81; the two selects are independent.'),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-
-      for (const { name, phoneCode } of countries) {
-        await account.selectCountry(name);
-        await expect(account.countrySelect).toHaveText(name);
-        await expect(
-          account.phoneCodeSelect,
-          `selecting ${name} must populate its dialling code`,
-        ).toHaveText(phoneCode);
-      }
-    },
-  );
-
-  // FAILS on dev (2026-08-23): CLICK TO VERIFY EMAIL ID is never `disabled` —
-  // it is clickable with every field blank. The app instead swallows the
-  // submit, focusing the first empty field.
-  test.fixme(
-    'TC_MA_010 — the submit button stays disabled until every field is filled',
-    defect('CLICK TO VERIFY EMAIL ID is never disabled — it is clickable with every field blank.'),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-      const merchant = buildMerchantAccount();
-
-      await expect(account.submitButton).toBeDisabled();
-
-      await account.fillAccount({ firstName: merchant.firstName });
-      await expect(account.submitButton).toBeDisabled();
-
-      await account.fillAccount({ lastName: merchant.lastName });
-      await expect(account.submitButton).toBeDisabled();
-
-      await account.fillAccount({ phone: merchant.phone });
-      await expect(account.submitButton, 'still blank: Email Address').toBeDisabled();
-
-      await account.fillAccount({ email: merchant.email });
-      await expect(account.submitButton).toBeEnabled();
-    },
-  );
-
-  // FAILS on dev (2026-08-23): a blank submit renders no message at all — the
-  // app only moves focus to First Name. The four "… is required" strings do
-  // exist, but they surface only on a *later* submit and then stay put even
-  // once the field holds a value, so they never describe the current state.
-  test.fixme(
-    'TC_MA_011 — each blank field names itself in its error message',
-    defect(
-      'A blank submit renders no message. The "… is required" strings appear only on a later submit, and then persist even once the field holds a value.',
-    ),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-      await account.submit();
-
-      await expect.soft(account.message(messages.firstNameRequired)).toBeVisible();
-      await expect.soft(account.message(messages.lastNameRequired)).toBeVisible();
-      await expect.soft(account.message(messages.phoneRequired)).toBeVisible();
-      await expect.soft(account.message(messages.emailRequired)).toBeVisible();
-
-      // …and each clears once its own field is filled.
-      await account.fillAccount(buildMerchantAccount());
-      await expect(account.validationMessages).toHaveCount(0);
-    },
-  );
-
   test('TC_MA_012 — a malformed email address never leaves the screen', async ({
     page,
     merchantAccountPage: account,
@@ -215,23 +155,6 @@ test.describe('Merchant registration — the account form', { tag: ['@regression
     }
   });
 
-  // FAILS on dev (2026-08-23): the screen refuses the address (TC_MA_012 above
-  // proves that much) but tells the user nothing — no message renders beside
-  // the field, so a real user is left guessing why nothing happened.
-  test.fixme(
-    'TC_MA_012b — a malformed email address explains itself',
-    defect(
-      'The address is refused but no message renders, so the user is never told why nothing happened.',
-    ),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-      await account.fillAccount({ ...buildMerchantAccount(), email: invalid.emails[0] });
-      await account.submit();
-
-      await expect(account.validationMessages).not.toHaveCount(0);
-    },
-  );
-
   test('TC_MA_013 — a phone number the app rejects never leaves the screen', async ({
     page,
     merchantAccountPage: account,
@@ -247,54 +170,6 @@ test.describe('Merchant registration — the account form', { tag: ['@regression
       });
     }
   });
-
-  // FAILS on dev (2026-08-23): the Phone Number field accepts letters and
-  // symbols into its value — `abcdefghi` sits in the box untouched — and the
-  // rejection that follows carries no message.
-  test.fixme(
-    'TC_MA_013b — the phone field refuses letters and symbols outright',
-    defect(
-      'Phone Number stores letters and symbols verbatim, and the rejection that follows carries no message.',
-    ),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-      await account.phoneInput.fill(invalid.phones.alphabetic);
-      await expect(account.phoneInput).toHaveValue('');
-
-      await account.phoneInput.fill(invalid.phones.symbols);
-      await expect(account.phoneInput).toHaveValue('');
-    },
-  );
-
-  // FAILS on dev (2026-08-23): the name fields accept anything. `12345` and
-  // `@#$%` are stored verbatim with no message, there is no `maxlength`, and
-  // surrounding spaces are not trimmed.
-  test.fixme(
-    'TC_MA_014 — the name fields reject digits, symbols and overlong input',
-    defect(
-      'First and Last Name accept 12345 and @#$% with no message, have no maximum length, and do not trim surrounding spaces.',
-    ),
-    async ({ merchantAccountPage: account }) => {
-      await account.goto();
-
-      await account.firstNameInput.fill(invalid.names.numeric);
-      await account.lastNameInput.fill(invalid.names.symbols);
-      await account.submit();
-      await expect(account.validationMessages).not.toHaveCount(0);
-
-      await account.firstNameInput.fill(invalid.names.tooLong);
-      const stored = await account.firstNameInput.inputValue();
-      expect(stored.length, 'input is capped at the permitted maximum').toBeLessThan(
-        invalid.names.tooLong.length,
-      );
-
-      await account.firstNameInput.fill(invalid.names.padded);
-      await account.lastNameInput.click();
-      await expect(account.firstNameInput, 'surrounding spaces are trimmed').toHaveValue(
-        invalid.names.padded.trim(),
-      );
-    },
-  );
 
   test('TC_MA_015 — Back to Start returns to the entry screen and discards the entries', async ({
     page,

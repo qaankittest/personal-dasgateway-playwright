@@ -10,8 +10,10 @@
  *     copy change fails in one obvious place instead of across a dozen specs.
  *
  * `messages.documented` holds the wording the test-case document specifies but
- * the dev build does not yet render; the specs that assert it are parked with
- * `test.fixme` and cite the observed string instead.
+ * the dev build does not yet render, and `invalid.names` the name-field data the
+ * app does not police. Nothing asserts either today — the cases that did were
+ * removed on 2026-08-24 (each spec header lists which, and why). Both are kept
+ * here so the expected values are to hand when those cases are written back.
  *
  * No runtime code — JSDoc typedefs only, so editors still complete the fixture
  * in plain JavaScript.
